@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, Lint, Handbook, E2E-check, Test (100% coverage), Build, E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Handbook completeness
+        run: bun run handbook:check
+
+      - name: E2E completeness
+        run: bun run e2e:check
+
+      - name: Test with 100% coverage gate
+        run: bun run test:coverage
+
+      - name: Build
+        run: bun run build
+
+      - name: End-to-end HTTP tests
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+          CI: '1'
+        run: bun run e2e
