@@ -81,3 +81,69 @@ test('Function: pushMapPlace — default boot does not require a map token', asy
   const res = await request.get('/healthz');
   expect(res.status()).toBe(200);
 });
+
+test('Function: normalizeMapPlaceKey — PUT updates a pin and DELETE removes it', async ({
+  request,
+}) => {
+  const pin = {
+    origin: 'dfx',
+    externalId: 'e2e-provider',
+    name: 'Omitted Label Cafe',
+    lat: 47.37,
+    lon: 8.54,
+    category: 'cafe',
+  };
+  const created = await request.post('/map/places', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: pin,
+  });
+  expect(created.status()).toBe(201);
+  const afterCreate = (await (await request.get('/map/places')).json()) as {
+    places: Array<{ name: string; techProvider: string }>;
+  };
+  expect(
+    afterCreate.places.some(
+      (row) => row.name === 'Omitted Label Cafe' && row.techProvider === 'DFX.swiss',
+    ),
+  ).toBe(true);
+
+  const renamed = await request.put('/map/places', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: { ...pin, name: 'Updated Label Cafe', techProvider: '21.gifts' },
+  });
+  expect(renamed.status()).toBe(200);
+
+  const keepProvider = await request.put('/map/places', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: { ...pin, name: 'Updated Label Cafe' },
+  });
+  expect(keepProvider.status()).toBe(200);
+
+  const afterPut = (await (await request.get('/map/places')).json()) as {
+    places: Array<{ name: string; techProvider: string }>;
+  };
+  expect(
+    afterPut.places.some(
+      (row) => row.name === 'Updated Label Cafe' && row.techProvider === '21.gifts',
+    ),
+  ).toBe(true);
+
+  const deleted = await request.delete('/map/places', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: { origin: 'dfx', externalId: 'e2e-provider' },
+  });
+  expect(deleted.status()).toBe(200);
+  expect(await deleted.json()).toEqual({ deleted: true });
+
+  const afterDelete = (await (await request.get('/map/places')).json()) as {
+    places: Array<{ name: string }>;
+  };
+  expect(afterDelete.places.some((row) => row.name === 'Updated Label Cafe')).toBe(false);
+
+  const again = await request.delete('/map/places', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: { origin: 'dfx', externalId: 'e2e-provider' },
+  });
+  expect(again.status()).toBe(200);
+  expect(await again.json()).toEqual({ deleted: false });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeMapPlace, toPublicMapPlace } from '@/lib/map/place';
+import { normalizeMapPlace, normalizeMapPlaceKey, toPublicMapPlace } from '@/lib/map/place';
 import type { StoredMapPlace } from '@/lib/map/place';
 
 const valid = {
@@ -77,12 +77,117 @@ describe('normalizeMapPlace', () => {
     expect(normalizeMapPlace({ ...valid, category: 'Cafe' }).ok).toBe(false);
     expect(normalizeMapPlace({ ...valid, category: '' }).ok).toBe(false);
   });
+
+  it('omits an absent, null, or trim-empty tech provider', () => {
+    const absent = normalizeMapPlace(valid);
+    expect(absent.ok && absent.value.techProvider).toBeUndefined();
+    const missing = normalizeMapPlace({ ...valid });
+    expect(missing.ok && !('techProvider' in missing.value)).toBe(true);
+    const nulled = normalizeMapPlace({ ...valid, techProvider: null });
+    expect(nulled.ok && nulled.value.techProvider).toBeUndefined();
+    const blank = normalizeMapPlace({ ...valid, techProvider: '  ' });
+    expect(blank.ok && blank.value.techProvider).toBeUndefined();
+  });
+
+  it('stores a trimmed tech provider and accepts 21.gifts', () => {
+    const trimmed = normalizeMapPlace({ ...valid, techProvider: ' DFX.swiss ' });
+    expect(trimmed).toEqual({
+      ok: true,
+      value: { ...valid, techProvider: 'DFX.swiss' },
+    });
+    const gifts = normalizeMapPlace({ ...valid, techProvider: '21.gifts' });
+    expect(gifts.ok && gifts.value.techProvider).toBe('21.gifts');
+    const max = normalizeMapPlace({ ...valid, techProvider: `A${'a'.repeat(39)}` });
+    expect(max.ok && max.value.techProvider).toBe(`A${'a'.repeat(39)}`);
+  });
+
+  it('rejects a non-string or invalid tech provider', () => {
+    expect(normalizeMapPlace({ ...valid, techProvider: 1 })).toEqual({
+      ok: false,
+      error: 'Place tech provider is invalid',
+    });
+    expect(normalizeMapPlace({ ...valid, techProvider: true })).toEqual({
+      ok: false,
+      error: 'Place tech provider is invalid',
+    });
+    expect(normalizeMapPlace({ ...valid, techProvider: 'bad provider' })).toEqual({
+      ok: false,
+      error: 'Place tech provider is invalid',
+    });
+    expect(normalizeMapPlace({ ...valid, techProvider: '-leading' })).toEqual({
+      ok: false,
+      error: 'Place tech provider is invalid',
+    });
+    expect(normalizeMapPlace({ ...valid, techProvider: `A${'a'.repeat(40)}` })).toEqual({
+      ok: false,
+      error: 'Place tech provider is invalid',
+    });
+  });
+});
+
+describe('normalizeMapPlaceKey', () => {
+  it('rejects a non-object and an array', () => {
+    expect(normalizeMapPlaceKey(null)).toEqual({
+      ok: false,
+      error: 'Place origin is invalid',
+    });
+    expect(normalizeMapPlaceKey([])).toEqual({
+      ok: false,
+      error: 'Place origin is invalid',
+    });
+    expect(normalizeMapPlaceKey('x')).toEqual({
+      ok: false,
+      error: 'Place origin is invalid',
+    });
+  });
+
+  it('rejects a bad origin and external id with the create error strings', () => {
+    expect(normalizeMapPlaceKey({ origin: 1, externalId: 'store-1' })).toEqual({
+      ok: false,
+      error: 'Place origin is invalid',
+    });
+    expect(normalizeMapPlaceKey({ origin: 'DFX', externalId: 'store-1' })).toEqual({
+      ok: false,
+      error: 'Place origin is invalid',
+    });
+    expect(normalizeMapPlaceKey({ origin: 'dfx', externalId: 1 })).toEqual({
+      ok: false,
+      error: 'Place external id is required',
+    });
+    expect(normalizeMapPlaceKey({ origin: 'dfx', externalId: '' })).toEqual({
+      ok: false,
+      error: 'Place external id is required',
+    });
+    expect(normalizeMapPlaceKey({ origin: 'dfx', externalId: 'a'.repeat(81) })).toEqual({
+      ok: false,
+      error: 'Place external id is required',
+    });
+    expect(normalizeMapPlaceKey({ origin: 'dfx', externalId: 'bad\nid' })).toEqual({
+      ok: false,
+      error: 'Place external id is required',
+    });
+  });
+
+  it('returns the trimmed key and ignores extra fields', () => {
+    expect(
+      normalizeMapPlaceKey({
+        origin: ' dfx ',
+        externalId: ' store-1 ',
+        name: 'ignored',
+        lat: 1,
+      }),
+    ).toEqual({
+      ok: true,
+      value: { origin: 'dfx', externalId: 'store-1' },
+    });
+  });
 });
 
 describe('toPublicMapPlace', () => {
   it('omits the caller id and payment methods', () => {
     const stored: StoredMapPlace = {
       ...valid,
+      techProvider: 'DFX.swiss',
       id: 'id-1',
       createdAt: '2026-09-26T00:00:00.000Z',
     };
@@ -93,6 +198,7 @@ describe('toPublicMapPlace', () => {
       lat: 47.37,
       lon: 8.54,
       category: 'groceries',
+      techProvider: 'DFX.swiss',
     });
   });
 });

@@ -1,6 +1,8 @@
 import type { MapPlaceInput, StoredMapPlace } from '@/lib/map/place';
 
-/** SQLite schema for map pins. A repeated origin and external id keeps the first row. */
+const DEFAULT_TECH_PROVIDER = 'DFX.swiss';
+
+/** SQLite schema for map pins. */
 export const MAP_PLACE_SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS map_place (
   id TEXT PRIMARY KEY,
   origin TEXT NOT NULL,
@@ -11,6 +13,7 @@ export const MAP_PLACE_SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS map_place (
   category TEXT NOT NULL,
   payment_methods TEXT,
   created_at TEXT NOT NULL,
+  tech_provider TEXT NOT NULL DEFAULT 'DFX.swiss',
   UNIQUE (origin, external_id)
 )`;
 
@@ -19,12 +22,14 @@ export const MAP_PLACE_SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS map_place (
  */
 export interface MapPlaceStore {
   insertIfNew(input: MapPlaceInput): { created: boolean; place: StoredMapPlace };
+  upsert(input: MapPlaceInput): { created: boolean; place: StoredMapPlace };
+  deleteByKey(origin: string, externalId: string): boolean;
   list(limit: number): StoredMapPlace[];
   close(): void;
 }
 
 /**
- * Process-local map store. Same create-once rule as SQLite.
+ * Process-local map store. Same insert-once, upsert, and delete rules as SQLite.
  */
 export class MemoryMapPlaceStore implements MapPlaceStore {
   readonly #rows: StoredMapPlace[] = [];
@@ -52,11 +57,54 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
     }
     const place: StoredMapPlace = {
       ...input,
+      techProvider: input.techProvider ?? DEFAULT_TECH_PROVIDER,
       id: crypto.randomUUID(),
       createdAt: this.#now().toISOString(),
     };
     this.#rows.push(place);
     return { created: true, place: { ...place } };
+  }
+
+  /**
+   * Insert when the pair is new, otherwise update the stored pin.
+   *
+   * @param input - Validated pin.
+   * @returns Whether this call inserted the row.
+   */
+  upsert(input: MapPlaceInput): { created: boolean; place: StoredMapPlace } {
+    const existing = this.#rows.find(
+      (row) => row.origin === input.origin && row.externalId === input.externalId,
+    );
+    if (existing === undefined) {
+      return this.insertIfNew(input);
+    }
+    existing.name = input.name;
+    existing.lat = input.lat;
+    existing.lon = input.lon;
+    existing.category = input.category;
+    existing.paymentMethods = input.paymentMethods;
+    if (input.techProvider !== undefined) {
+      existing.techProvider = input.techProvider;
+    }
+    return { created: false, place: { ...existing } };
+  }
+
+  /**
+   * Remove the pin for this origin and external id.
+   *
+   * @param origin - Pin origin.
+   * @param externalId - Caller id.
+   * @returns Whether a row was removed.
+   */
+  deleteByKey(origin: string, externalId: string): boolean {
+    const index = this.#rows.findIndex(
+      (row) => row.origin === origin && row.externalId === externalId,
+    );
+    if (index < 0) {
+      return false;
+    }
+    this.#rows.splice(index, 1);
+    return true;
   }
 
   /**

@@ -1,5 +1,5 @@
 /**
- * One pin on the OpenCryptoPay map. A caller submits it once.
+ * One pin on the OpenCryptoPay map.
  * Coordinates are rounded to six decimal places.
  */
 
@@ -11,11 +11,13 @@ export type MapPlaceInput = {
   lon: number;
   category: string;
   paymentMethods: string | null;
+  techProvider?: string;
 };
 
 export type StoredMapPlace = MapPlaceInput & {
   id: string;
   createdAt: string;
+  techProvider: string;
 };
 
 /** Fields the public map may show. The caller's own id stays off this list. */
@@ -26,6 +28,7 @@ export type PublicMapPlace = {
   lat: number;
   lon: number;
   category: string;
+  techProvider: string;
 };
 
 const COORD_ERROR = 'Place must be a latitude and longitude';
@@ -33,8 +36,10 @@ const ORIGIN_ERROR = 'Place origin is invalid';
 const EXTERNAL_ID_ERROR = 'Place external id is required';
 const NAME_ERROR = 'Place name is required';
 const CATEGORY_ERROR = 'Place category is required';
+const TECH_PROVIDER_ERROR = 'Place tech provider is invalid';
 
 const PAYMENT_METHODS = /^(onchain|lightning|nfc)(,(onchain|lightning|nfc))*$/;
+const TECH_PROVIDER = /^[A-Za-z0-9][A-Za-z0-9.-]{0,39}$/;
 
 function roundCoord(n: number): number {
   const rounded = Math.round(n * 1e6) / 1e6;
@@ -49,6 +54,45 @@ function hasNoControls(value: string): boolean {
     }
   }
   return true;
+}
+
+function normalizeOrigin(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(raw.trim())) {
+    return { ok: false, error: ORIGIN_ERROR };
+  }
+  return { ok: true, value: raw.trim() };
+}
+
+function normalizeExternalId(
+  raw: unknown,
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== 'string') {
+    return { ok: false, error: EXTERNAL_ID_ERROR };
+  }
+  const externalId = raw.trim();
+  if (externalId.length < 1 || externalId.length > 80 || !hasNoControls(externalId)) {
+    return { ok: false, error: EXTERNAL_ID_ERROR };
+  }
+  return { ok: true, value: externalId };
+}
+
+function normalizeTechProvider(
+  raw: unknown,
+): { ok: true; value: string | undefined } | { ok: false; error: string } {
+  if (raw === undefined || raw === null) {
+    return { ok: true, value: undefined };
+  }
+  if (typeof raw !== 'string') {
+    return { ok: false, error: TECH_PROVIDER_ERROR };
+  }
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return { ok: true, value: undefined };
+  }
+  if (!TECH_PROVIDER.test(trimmed)) {
+    return { ok: false, error: TECH_PROVIDER_ERROR };
+  }
+  return { ok: true, value: trimmed };
 }
 
 /**
@@ -79,18 +123,14 @@ export function normalizeMapPlace(
     return { ok: false, error: COORD_ERROR };
   }
 
-  const rawOrigin = rec['origin'];
-  if (typeof rawOrigin !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(rawOrigin.trim())) {
-    return { ok: false, error: ORIGIN_ERROR };
+  const origin = normalizeOrigin(rec['origin']);
+  if (!origin.ok) {
+    return origin;
   }
 
-  const rawExternalId = rec['externalId'];
-  if (typeof rawExternalId !== 'string') {
-    return { ok: false, error: EXTERNAL_ID_ERROR };
-  }
-  const externalId = rawExternalId.trim();
-  if (externalId.length < 1 || externalId.length > 80 || !hasNoControls(externalId)) {
-    return { ok: false, error: EXTERNAL_ID_ERROR };
+  const externalId = normalizeExternalId(rec['externalId']);
+  if (!externalId.ok) {
+    return externalId;
   }
 
   const rawName = rec['name'];
@@ -120,18 +160,48 @@ export function normalizeMapPlace(
     }
   }
 
-  return {
-    ok: true,
-    value: {
-      origin: rawOrigin.trim(),
-      externalId,
-      name,
-      lat: roundCoord(lat),
-      lon: roundCoord(lon),
-      category,
-      paymentMethods,
-    },
+  const techProvider = normalizeTechProvider(rec['techProvider']);
+  if (!techProvider.ok) {
+    return techProvider;
+  }
+
+  const value: MapPlaceInput = {
+    origin: origin.value,
+    externalId: externalId.value,
+    name,
+    lat: roundCoord(lat),
+    lon: roundCoord(lon),
+    category,
+    paymentMethods,
   };
+  if (techProvider.value !== undefined) {
+    value.techProvider = techProvider.value;
+  }
+  return { ok: true, value };
+}
+
+/**
+ * Validate origin and external id for a pin delete.
+ *
+ * @param input - Request JSON.
+ * @returns The key, or a fixed error message.
+ */
+export function normalizeMapPlaceKey(
+  input: unknown,
+): { ok: true; value: { origin: string; externalId: string } } | { ok: false; error: string } {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    return { ok: false, error: ORIGIN_ERROR };
+  }
+  const rec = input as Record<string, unknown>;
+  const origin = normalizeOrigin(rec['origin']);
+  if (!origin.ok) {
+    return origin;
+  }
+  const externalId = normalizeExternalId(rec['externalId']);
+  if (!externalId.ok) {
+    return externalId;
+  }
+  return { ok: true, value: { origin: origin.value, externalId: externalId.value } };
 }
 
 /**
@@ -148,5 +218,6 @@ export function toPublicMapPlace(place: StoredMapPlace): PublicMapPlace {
     lat: place.lat,
     lon: place.lon,
     category: place.category,
+    techProvider: place.techProvider,
   };
 }

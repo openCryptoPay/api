@@ -6,7 +6,7 @@ import { mapRoutes } from '@/routes/map';
 
 export type AppDeps = {
   store: MapPlaceStore;
-  /** Ingest bearer. Unset or blank means POST is not configured. */
+  /** Ingest bearer. Unset or blank means ingest is not configured. */
   ingestToken?: string;
   env: Record<string, string | undefined>;
   fetchImpl: FetchLike;
@@ -14,7 +14,8 @@ export type AppDeps = {
 
 /**
  * HTTP API. `GET /healthz` and `GET /map/places` are public.
- * `POST /map/places` creates a pin once.
+ * `POST /map/places` creates a pin once. `PUT /map/places` updates a pin.
+ * `DELETE /map/places` removes a pin.
  *
  * @param deps - Store, ingest token, and the BTC Map environment.
  * @returns The application.

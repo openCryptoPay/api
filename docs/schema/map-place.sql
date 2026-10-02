@@ -1,4 +1,4 @@
--- Map pins. A repeated origin and external id keeps the first row.
+-- Map pins keyed by origin and external id.
 CREATE TABLE IF NOT EXISTS map_place (
   id TEXT PRIMARY KEY,
   origin TEXT NOT NULL,
@@ -9,5 +9,6 @@ CREATE TABLE IF NOT EXISTS map_place (
   category TEXT NOT NULL,
   payment_methods TEXT,
   created_at TEXT NOT NULL,
+  tech_provider TEXT NOT NULL DEFAULT 'DFX.swiss',
   UNIQUE (origin, external_id)
 );
