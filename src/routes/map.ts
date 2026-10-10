@@ -2,8 +2,17 @@ import { timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { pushMapPlace, type FetchLike, type MapPushResult } from '@/lib/map/btcmap';
-import { normalizeMapPlace, normalizeMapPlaceKey, toPublicMapPlace } from '@/lib/map/place';
-import type { MapPlaceStore } from '@/lib/map/store';
+import { publicFilterResponse } from '@/lib/map/filter-catalog';
+import {
+  normalizeMapPlace,
+  normalizeMapPlaceFilter,
+  normalizeMapPlaceKey,
+  normalizePlaceOrigin,
+  normalizePlaceTransaction,
+  placeActivity,
+  toPublicMapPlace,
+} from '@/lib/map/place';
+import type { MapPlaceListFilter, MapPlaceStore } from '@/lib/map/store';
 
 export type MapRouteDeps = {
   store: MapPlaceStore;
@@ -11,6 +20,7 @@ export type MapRouteDeps = {
   ingestToken?: string;
   env: Record<string, string | undefined>;
   fetchImpl: FetchLike;
+  now?: () => number;
 };
 
 function checkIngest(
@@ -36,10 +46,11 @@ function checkIngest(
 /**
  * Public map list and ingest. Mounted at `/map`.
  *
- * @param deps - Store, ingest token, and the environment used for BTC Map.
+ * @param deps - Store, ingest token, BTC Map environment, and an optional clock.
  * @returns The map route group.
  */
 export function mapRoutes(deps: MapRouteDeps): Hono {
+  const now = deps.now ?? (() => Date.now());
   const app = new Hono();
   app.use(
     '*',
@@ -62,8 +73,45 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
       }
       limit = n;
     }
-    const places = deps.store.list(limit).map((place) => toPublicMapPlace(place));
+    const originQuery = c.req.query('origin');
+    let origin: string | undefined;
+    if (originQuery !== undefined) {
+      const parsedOrigin = normalizePlaceOrigin(originQuery);
+      if (!parsedOrigin.ok) {
+        return c.json({ error: parsedOrigin.error }, 400);
+      }
+      origin = parsedOrigin.value;
+    }
+    const parsedFilter = normalizeMapPlaceFilter(
+      c.req.query('country'),
+      c.req.query('shopName'),
+      c.req.query('blockchain'),
+      c.req.query('asset'),
+    );
+    if (!parsedFilter.ok) {
+      return c.json({ error: parsedFilter.error }, 400);
+    }
+    const filter: MapPlaceListFilter = { ...parsedFilter.value };
+    if (origin !== undefined) {
+      filter.origin = origin;
+    }
+    const nowMs = now();
+    const places = deps.store.list(limit, filter).map((place) => toPublicMapPlace(place, nowMs));
     return c.json({ places });
+  });
+
+  app.get('/filters', (c) => {
+    const parsed = normalizeMapPlaceFilter(
+      undefined,
+      undefined,
+      c.req.query('blockchain'),
+      undefined,
+    );
+    if (!parsed.ok) {
+      return c.json({ error: parsed.error }, 400);
+    }
+    const values = deps.store.filters(parsed.value.blockchain);
+    return c.json(publicFilterResponse(values, parsed.value.blockchain));
   });
 
   app.post('/places', async (c) => {
@@ -123,6 +171,31 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
     }
     const deleted = deps.store.deleteByKey(parsed.value.origin, parsed.value.externalId);
     return c.json({ deleted });
+  });
+
+  app.post('/places/transactions', async (c) => {
+    const auth = checkIngest(deps.ingestToken, c.req.header('authorization'));
+    if (auth === 'unconfigured') {
+      return c.json({ error: 'Place ingest is not configured' }, 503);
+    }
+    if (auth === 'unauthorized') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    const nowMs = now();
+    const raw: unknown = await c.req.json().catch(() => null);
+    const parsed = normalizePlaceTransaction(raw, nowMs);
+    if (!parsed.ok) {
+      return c.json({ error: parsed.error }, 400);
+    }
+    const place = deps.store.recordTransaction(
+      parsed.value.origin,
+      parsed.value.externalId,
+      parsed.value.occurredAt,
+    );
+    if (place === undefined) {
+      return c.json({ error: 'Place not found' }, 404);
+    }
+    return c.json({ activity: placeActivity(place.lastTransactionAt, nowMs) });
   });
 
   return app;
