@@ -45,6 +45,9 @@ jobs:
       - name: Test with 100% coverage gate
         run: bun run test:coverage
 
+      - name: Database schema reference
+        run: bun run test:schema
+
       - name: Build
         run: bun run build
 

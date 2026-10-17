@@ -15,6 +15,9 @@
     "test:coverage": "vitest run --coverage",
     "handbook:check": "node scripts/check-handbook.mjs",
     "e2e:check": "node scripts/check-e2e.mjs",
+    "db:docs": "bun integration/db-schema-reference.ts --write",
+    "db:docs:check": "bun integration/db-schema-reference.ts --check",
+    "test:schema": "bun test integration/db-schema-reference.test.ts",
     "e2e": "playwright test"
   },
   "dependencies": {
