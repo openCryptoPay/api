@@ -9,3 +9,4 @@ HTTP routes and handlers stay in the [handbook](../handbook/endpoints.md).
 | [Map comparison](map-comparison.md)           | What those implementations share, and where they differ |
 | [Place requirements](place-requirements.md)   | Hard requirements for every shop the API serves         |
 | [Requirements gap](place-requirements-gap.md) | Target and current state of those requirements          |
+| [Shop identity](shop-identity.md)             | NOSTR key as shop id, photos, and the shop page         |
