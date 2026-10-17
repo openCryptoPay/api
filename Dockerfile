@@ -1,8 +1,8 @@
 # OpenCryptoPay place API.
 #
 # Build:
-#   docker build -t opencryptopay/api:beta .
-#   docker build -t opencryptopay/api:latest .
+#   docker build -t dfxswiss/opencryptopay-api:beta .
+#   docker build -t dfxswiss/opencryptopay-api:latest .
 
 FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app

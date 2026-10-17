@@ -9,6 +9,10 @@ if (filename !== ':memory:') {
 }
 
 const store = new SqliteMapPlaceStore(filename);
+store.refreshActivity(Date.now());
+setInterval(() => {
+  store.refreshActivity(Date.now());
+}, 1000);
 const parsedPort = Number(process.env['PORT'] ?? '3000');
 const port = Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
 const token = process.env['OCP_PLACE_INGEST_TOKEN'];

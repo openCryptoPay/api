@@ -128,6 +128,7 @@ function extractEndpoints() {
   const mountByFile = {
     'health.ts': '/healthz',
     'map.ts': '/map',
+    'welcome.ts': '',
   };
   const methodRe = /\.(get|post|delete|put|patch)\((['"])(\/[-A-Za-z0-9_./:]*)\2/g;
   for (const file of fs.readdirSync(routeDir).filter((n) => n.endsWith('.ts'))) {

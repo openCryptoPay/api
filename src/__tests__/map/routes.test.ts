@@ -1,15 +1,48 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@/server';
+import { publicFilterResponse } from '@/lib/map/filter-catalog';
 import { MemoryMapPlaceStore } from '@/lib/map/store';
+import { createApp } from '@/server';
+
+const DESCRIPTION =
+  'SPAR supermarket in Triesen. Customers can pay with Bitcoin and other crypto assets through OpenCryptoPay at the checkout.';
+
+const OTHER_DESCRIPTION =
+  'Neighbourhood grocery in Zürich. Customers can pay with Bitcoin and other crypto assets through OpenCryptoPay at the checkout.';
 
 const body = {
   origin: 'dfx',
   externalId: 'store-1',
-  name: 'SPAR',
+  name: 'SPAR Triesen',
+  description: DESCRIPTION,
   lat: 47.37,
   lon: 8.54,
   category: 'groceries',
   paymentMethods: 'lightning',
+  shopType: 'SPAR',
+  street: 'Maschlinastrasse',
+  houseNumber: '4',
+  postalCode: '9495',
+  city: 'Triesen',
+  country: 'LI',
+};
+
+const publicPin = {
+  origin: 'dfx',
+  name: 'SPAR Triesen',
+  description: DESCRIPTION,
+  lat: 47.37,
+  lon: 8.54,
+  category: 'groceries',
+  techProvider: 'DFX.swiss',
+  shopType: 'SPAR',
+  shopName: 'SPAR',
+  country: 'LI',
+  street: 'Maschlinastrasse',
+  houseNumber: '4',
+  postalCode: '9495',
+  city: 'Triesen',
+  supports: [] as Array<{ blockchain: string; asset: string }>,
+  activity: 'none',
 };
 
 const jsonHeaders = {
@@ -21,16 +54,34 @@ function app(opts: {
   token?: string;
   env?: Record<string, string | undefined>;
   fetchImpl?: (input: string, init: RequestInit) => Promise<Response>;
+  store?: MemoryMapPlaceStore;
+  now?: () => number;
 }) {
   return createApp({
-    store: new MemoryMapPlaceStore(),
+    store: opts.store ?? new MemoryMapPlaceStore(),
     env: opts.env ?? {},
     fetchImpl: opts.fetchImpl ?? (async () => new Response('{}', { status: 201 })),
     ...(opts.token === undefined ? {} : { ingestToken: opts.token }),
+    ...(opts.now === undefined ? {} : { now: opts.now }),
   });
 }
 
 describe('map routes', () => {
+  it('serves a welcome page and leaves unknown paths as 404', async () => {
+    const api = app({});
+    const page = await api.request('/');
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-type') ?? '').toContain('text/html');
+    const html = await page.text();
+    expect(html).toContain('<h1>Welcome</h1>');
+    expect(html).toContain('href="/map/places"');
+    expect(html).toContain('href="/map/filters"');
+    expect(html).toContain('href="/healthz"');
+    expect(html).toContain('https://opencryptopay.io');
+    expect((await api.request('/no-such')).status).toBe(404);
+    expect((await api.request('/', { method: 'POST' })).status).toBe(404);
+  });
+
   it('serves health and an empty public list', async () => {
     const api = app({});
     expect((await api.request('/healthz')).status).toBe(200);
@@ -39,6 +90,124 @@ describe('map routes', () => {
     expect(await list.json()).toEqual({ places: [] });
     const one = await api.request('/map/places?limit=1');
     expect(one.status).toBe(200);
+    const filters = await api.request('/map/filters');
+    expect(filters.status).toBe(200);
+    expect(await filters.json()).toEqual(
+      publicFilterResponse({ countries: [], blockchains: [], assets: [] }),
+    );
+  });
+
+  it('filters GET /map/places by origin and rejects SPAR', async () => {
+    const api = app({ token: 'secret' });
+    const dfx = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(dfx.status).toBe(201);
+    const spar = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        origin: 'spar',
+        externalId: 'spar-1',
+        name: 'SPAR Shop',
+      }),
+    });
+    expect(spar.status).toBe(201);
+    const filtered = await api.request('/map/places?origin=spar');
+    expect(filtered.status).toBe(200);
+    const filteredJson = (await filtered.json()) as {
+      places: Array<{ origin: string; name: string }>;
+    };
+    expect(filteredJson.places).toHaveLength(1);
+    expect(filteredJson.places[0]?.origin).toBe('spar');
+    expect(filteredJson.places[0]?.name).toBe('SPAR Shop');
+    const bad = await api.request('/map/places?origin=SPAR');
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'Place origin is invalid' });
+    const all = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ origin: string }>;
+    };
+    expect(all.places).toHaveLength(2);
+    expect(all.places.map((row) => row.origin).sort()).toEqual(['dfx', 'spar']);
+  });
+
+  it('accepts origin 21gifts on PUT and GET and rejects a leading hyphen or uppercase', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        origin: '21gifts',
+        externalId: 'shop-1',
+        name: 'Shop',
+        description: OTHER_DESCRIPTION,
+        lat: 14.620311,
+        lon: 120.959626,
+        category: 'shopping',
+        paymentMethods: 'lightning',
+        techProvider: '21.gifts',
+        shopType: 'Others',
+        street: 'Santa Bakhita',
+        houseNumber: '1',
+        postalCode: '1011',
+        city: 'Manila',
+        country: 'PH',
+      }),
+    });
+    expect(created.status).toBe(201);
+    const createdJson = (await created.json()) as { created: boolean };
+    expect(createdJson.created).toBe(true);
+    const listed = await api.request('/map/places?origin=21gifts');
+    expect(listed.status).toBe(200);
+    const listedJson = (await listed.json()) as {
+      places: Array<{
+        origin: string;
+        name: string;
+        category: string;
+        techProvider: string;
+        shopType: string;
+        shopName: string | null;
+      }>;
+    };
+    expect(listedJson.places).toHaveLength(1);
+    expect(listedJson.places[0]?.origin).toBe('21gifts');
+    expect(listedJson.places[0]?.name).toBe('Shop');
+    expect(listedJson.places[0]?.category).toBe('shopping');
+    expect(listedJson.places[0]?.techProvider).toBe('21.gifts');
+    expect(listedJson.places[0]?.shopType).toBe('Others');
+    expect(listedJson.places[0]?.shopName).toBeNull();
+    const hyphen = await api.request('/map/places?origin=-21gifts');
+    expect(hyphen.status).toBe(400);
+    expect(await hyphen.json()).toEqual({ error: 'Place origin is invalid' });
+    const uppercase = await api.request('/map/places?origin=21Gifts');
+    expect(uppercase.status).toBe(400);
+    expect(await uppercase.json()).toEqual({ error: 'Place origin is invalid' });
+    const putHyphen = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        origin: '-21gifts',
+        externalId: 'shop-2',
+        name: 'Shop',
+        description: OTHER_DESCRIPTION,
+        lat: 14.620311,
+        lon: 120.959626,
+        category: 'shopping',
+        paymentMethods: 'lightning',
+        techProvider: '21.gifts',
+        shopType: 'Others',
+        street: 'Santa Bakhita',
+        houseNumber: '1',
+        postalCode: '1011',
+        city: 'Manila',
+        country: 'PH',
+      }),
+    });
+    expect(putHyphen.status).toBe(400);
+    expect(await putHyphen.json()).toEqual({ error: 'Place origin is invalid' });
   });
 
   it('rejects a bad limit', async () => {
@@ -135,6 +304,23 @@ describe('map routes', () => {
     });
     expect(putInvalidTech.status).toBe(400);
     expect(await putInvalidTech.json()).toEqual({ error: 'Place tech provider is invalid' });
+    const unknownKey = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, shopName: 'SPAR' }),
+    });
+    expect(unknownKey.status).toBe(400);
+    expect(await unknownKey.json()).toEqual({ error: 'Place field is not allowed: shopName' });
+    const longKey = 'k'.repeat(60);
+    const longUnknown = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, [longKey]: 1 }),
+    });
+    expect(longUnknown.status).toBe(400);
+    expect(await longUnknown.json()).toEqual({
+      error: `Place field is not allowed: ${'k'.repeat(40)}`,
+    });
     const deleteNoHeader = await api.request('/map/places', {
       method: 'DELETE',
       body: JSON.stringify({ origin: 'dfx', externalId: 'store-1' }),
@@ -189,16 +375,11 @@ describe('map routes', () => {
     };
     expect(list.places[0]).toEqual({
       id: createdBody.id,
-      origin: 'dfx',
-      name: 'SPAR',
-      lat: 47.37,
-      lon: 8.54,
-      category: 'groceries',
-      techProvider: 'DFX.swiss',
+      ...publicPin,
     });
   });
 
-  it('upserts on PUT and pushes BTC Map only when created', async () => {
+  it('upserts on PUT as a full replace and pushes BTC Map only when created', async () => {
     const calls: string[] = [];
     const api = app({
       token: 'secret',
@@ -220,7 +401,17 @@ describe('map routes', () => {
     const updated = await api.request('/map/places', {
       method: 'PUT',
       headers: jsonHeaders,
-      body: JSON.stringify({ ...body, name: 'Other' }),
+      body: JSON.stringify({
+        ...body,
+        name: 'Other Shop',
+        description: OTHER_DESCRIPTION,
+        shopType: 'Others',
+        street: 'Bahnhofstrasse',
+        houseNumber: '12',
+        postalCode: '8001',
+        city: 'Zürich',
+        country: 'CH',
+      }),
     });
     expect(updated.status).toBe(200);
     expect(await updated.json()).toEqual({
@@ -235,11 +426,148 @@ describe('map routes', () => {
     expect(list.places[0]).toEqual({
       id: createdBody.id,
       origin: 'dfx',
-      name: 'Other',
+      name: 'Other Shop',
+      description: OTHER_DESCRIPTION,
       lat: 47.37,
       lon: 8.54,
       category: 'groceries',
-      techProvider: '21.gifts',
+      techProvider: 'DFX.swiss',
+      shopType: 'Others',
+      shopName: null,
+      country: 'CH',
+      street: 'Bahnhofstrasse',
+      houseNumber: '12',
+      postalCode: '8001',
+      city: 'Zürich',
+      supports: [],
+      activity: 'none',
+    });
+  });
+
+  it('rejects a PUT that omits a required field and does not replace the stored pin', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const createdBody = (await created.json()) as { id: string };
+    const listed = (await (await api.request('/map/places')).json()) as {
+      places: Array<Record<string, unknown>>;
+    };
+    expect(listed.places[0]).toEqual({
+      id: createdBody.id,
+      ...publicPin,
+      supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+    });
+    const omittedCountry = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        origin: 'dfx',
+        externalId: 'store-1',
+        name: 'Renamed',
+        description: OTHER_DESCRIPTION,
+        lat: 47.37,
+        lon: 8.54,
+        category: 'groceries',
+        shopType: 'SPAR',
+        street: 'Limmatquai',
+        houseNumber: '4',
+        postalCode: '8001',
+        city: 'Zürich',
+      }),
+    });
+    expect(omittedCountry.status).toBe(400);
+    expect(await omittedCountry.json()).toEqual({ error: 'Place country is invalid' });
+    const badStreet = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, street: '  ' }),
+    });
+    expect(badStreet.status).toBe(400);
+    expect(await badStreet.json()).toEqual({ error: 'Place street is invalid' });
+    const badHouse = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, houseNumber: 1 }),
+    });
+    expect(badHouse.status).toBe(400);
+    expect(await badHouse.json()).toEqual({ error: 'Place house number is invalid' });
+    const badPostal = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, postalCode: '' }),
+    });
+    expect(badPostal.status).toBe(400);
+    expect(await badPostal.json()).toEqual({ error: 'Place postal code is invalid' });
+    const badCity = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, city: 'bad\ncity' }),
+    });
+    expect(badCity.status).toBe(400);
+    expect(await badCity.json()).toEqual({ error: 'Place city is invalid' });
+    const after = (await (await api.request('/map/places')).json()) as {
+      places: Array<Record<string, unknown>>;
+    };
+    expect(after.places[0]).toEqual({
+      id: createdBody.id,
+      ...publicPin,
+      supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+    });
+    const again = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        street: 'Other Street',
+        houseNumber: '99',
+        postalCode: '10115',
+        city: 'Berlin',
+        country: 'DE',
+      }),
+    });
+    expect(again.status).toBe(200);
+    const afterInsert = (await (await api.request('/map/places')).json()) as {
+      places: Array<Record<string, unknown>>;
+    };
+    expect(afterInsert.places[0]).toEqual({
+      id: createdBody.id,
+      ...publicPin,
+      supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+    });
+  });
+
+  it('clears supports on PUT when the body omits them', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const createdBody = (await created.json()) as { id: string };
+    const updated = await api.request('/map/places', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(updated.status).toBe(200);
+    const listed = (await (await api.request('/map/places')).json()) as {
+      places: Array<Record<string, unknown>>;
+    };
+    expect(listed.places[0]).toEqual({
+      id: createdBody.id,
+      ...publicPin,
+      supports: [],
     });
   });
 
@@ -278,5 +606,412 @@ describe('map routes', () => {
     expect(missing.status).toBe(200);
     expect(await missing.json()).toEqual({ deleted: false });
     expect(calls).toHaveLength(1);
+  });
+
+  it('filters GET /map/places by shop type, shop name alias, country, blockchain, and asset', async () => {
+    const api = app({ token: 'secret' });
+    const match = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        externalId: 'match',
+        country: 'CH',
+        postalCode: '8001',
+        shopType: 'SPAR',
+        supports: [{ blockchain: 'Ethereum', asset: 'ZCHF' }],
+      }),
+    });
+    expect(match.status).toBe(201);
+    const other = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        externalId: 'other',
+        name: 'Other Shop',
+        description: OTHER_DESCRIPTION,
+        country: 'DE',
+        postalCode: '10115',
+        shopType: 'Others',
+        supports: [
+          { blockchain: 'Polygon', asset: 'ZCHF' },
+          { blockchain: 'Ethereum', asset: 'ETH' },
+        ],
+      }),
+    });
+    expect(other.status).toBe(201);
+    const filtered = await api.request(
+      '/map/places?shopType=SPAR&country=CH&blockchain=Ethereum&asset=ZCHF',
+    );
+    expect(filtered.status).toBe(200);
+    const filteredJson = (await filtered.json()) as {
+      places: Array<{ name: string; country: string; shopType: string; shopName: string | null }>;
+    };
+    expect(filteredJson.places).toHaveLength(1);
+    expect(filteredJson.places[0]?.shopType).toBe('SPAR');
+    expect(filteredJson.places[0]?.shopName).toBe('SPAR');
+    expect(filteredJson.places[0]?.country).toBe('CH');
+    const alias = await api.request('/map/places?shopName=others');
+    const aliasJson = (await alias.json()) as {
+      places: Array<{ shopType: string; shopName: string | null }>;
+    };
+    expect(aliasJson.places).toHaveLength(1);
+    expect(aliasJson.places[0]?.shopType).toBe('Others');
+    expect(aliasJson.places[0]?.shopName).toBeNull();
+    expect((await api.request('/map/places?shopName=Migros')).status).toBe(400);
+    expect(await (await api.request('/map/places?shopName=Migros')).json()).toEqual({
+      error: 'Place shop name is invalid',
+    });
+    expect((await api.request('/map/places?shopType=others')).status).toBe(400);
+    expect(await (await api.request('/map/places?shopType=others')).json()).toEqual({
+      error: 'Place shop type is invalid',
+    });
+    expect((await api.request('/map/places?shopType=SPAR&shopName=others')).status).toBe(400);
+    expect(await (await api.request('/map/places?shopType=SPAR&shopName=others')).json()).toEqual({
+      error: 'Place shop type is invalid',
+    });
+    expect((await api.request('/map/places?country=ZZ')).status).toBe(400);
+    expect(await (await api.request('/map/places?country=ZZ')).json()).toEqual({
+      error: 'Place country is invalid',
+    });
+    expect((await api.request('/map/places?country=CHE')).status).toBe(400);
+    expect(await (await api.request('/map/places?country=CHE')).json()).toEqual({
+      error: 'Place country is invalid',
+    });
+    expect((await api.request('/map/places?country=PH')).status).toBe(200);
+    expect((await api.request('/map/places?blockchain=ethereum')).status).toBe(400);
+    expect(await (await api.request('/map/places?blockchain=ethereum')).json()).toEqual({
+      error: 'Place support is invalid',
+    });
+    expect((await api.request('/map/places?blockchain=Frick')).status).toBe(400);
+    expect(await (await api.request('/map/places?blockchain=Frick')).json()).toEqual({
+      error: 'Place support is invalid',
+    });
+    expect((await api.request('/map/places?asset=zchf')).status).toBe(400);
+    expect(await (await api.request('/map/places?asset=zchf')).json()).toEqual({
+      error: 'Place support is invalid',
+    });
+    expect((await api.request('/map/places?asset=Ethereum/ZCHF')).status).toBe(400);
+    expect(await (await api.request('/map/places?asset=Ethereum/ZCHF')).json()).toEqual({
+      error: 'Place support is invalid',
+    });
+  });
+
+  it('does not treat blockchain and asset on different support rows as one pair', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        externalId: 'split-pair',
+        supports: [
+          { blockchain: 'Polygon', asset: 'ZCHF' },
+          { blockchain: 'Ethereum', asset: 'ETH' },
+        ],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const mismatch = await api.request('/map/places?blockchain=Ethereum&asset=ZCHF');
+    expect(mismatch.status).toBe(200);
+    const mismatchJson = (await mismatch.json()) as { places: unknown[] };
+    expect(mismatchJson.places).toHaveLength(0);
+    const eth = await api.request('/map/places?blockchain=Ethereum&asset=ETH');
+    expect(eth.status).toBe(200);
+    const ethJson = (await eth.json()) as { places: Array<{ name: string }> };
+    expect(ethJson.places).toHaveLength(1);
+    expect(ethJson.places[0]?.name).toBe(body.name);
+    const polygon = await api.request('/map/places?blockchain=Polygon&asset=ZCHF');
+    expect(polygon.status).toBe(200);
+    const polygonJson = (await polygon.json()) as { places: unknown[] };
+    expect(polygonJson.places).toHaveLength(1);
+  });
+
+  it('returns a stored dEURO asset unchanged', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        externalId: 'deuro',
+        supports: [{ blockchain: 'Ethereum', asset: 'dEURO' }],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const listed = await api.request('/map/places?asset=dEURO');
+    expect(listed.status).toBe(200);
+    const json = (await listed.json()) as {
+      places: Array<{ supports: Array<{ blockchain: string; asset: string }> }>;
+    };
+    expect(json.places).toHaveLength(1);
+    expect(json.places[0]?.supports).toEqual([{ blockchain: 'Ethereum', asset: 'dEURO' }]);
+  });
+
+  it('returns GET /map/filters from stored rows and rejects a bad blockchain', async () => {
+    const api = app({ token: 'secret' });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        country: 'CH',
+        postalCode: '8001',
+        shopType: 'SPAR',
+        supports: [
+          { blockchain: 'Ethereum', asset: 'ZCHF' },
+          { blockchain: 'Polygon', asset: 'ETH' },
+        ],
+      }),
+    });
+    expect(created.status).toBe(201);
+    const filters = await api.request('/map/filters');
+    expect(filters.status).toBe(200);
+    const filterJson = (await filters.json()) as {
+      shopTypes: string[];
+      shopNames: string[];
+      countries: string[];
+      blockchains: string[];
+      assets: string[];
+    };
+    expect(filterJson.shopTypes).toEqual(['SPAR', 'Others']);
+    expect(filterJson.shopNames).toEqual(['SPAR', 'others']);
+    expect(filterJson).toEqual(
+      publicFilterResponse({
+        countries: ['CH'],
+        blockchains: ['Ethereum', 'Polygon'],
+        assets: ['ETH', 'ZCHF'],
+      }),
+    );
+    const ethereum = await api.request('/map/filters?blockchain=Ethereum');
+    expect(ethereum.status).toBe(200);
+    expect(await ethereum.json()).toEqual(
+      publicFilterResponse(
+        {
+          countries: ['CH'],
+          blockchains: ['Ethereum', 'Polygon'],
+          assets: ['ZCHF'],
+        },
+        'Ethereum',
+      ),
+    );
+    const bad = await api.request('/map/filters?blockchain=ethereum');
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'Place support is invalid' });
+  });
+
+  it('refuses place transactions until a token is configured', async () => {
+    const tx = { origin: 'dfx', externalId: 'store-1' };
+    const missing = await app({}).request('/map/places/transactions', {
+      method: 'POST',
+      body: JSON.stringify(tx),
+    });
+    expect(missing.status).toBe(503);
+    expect(await missing.json()).toEqual({ error: 'Place ingest is not configured' });
+    const blank = await app({ token: '  ' }).request('/map/places/transactions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer secret' },
+      body: JSON.stringify(tx),
+    });
+    expect(blank.status).toBe(503);
+    expect(await blank.json()).toEqual({ error: 'Place ingest is not configured' });
+  });
+
+  it('rejects a missing or wrong bearer for place transactions', async () => {
+    const api = app({ token: 'secret' });
+    const tx = { origin: 'dfx', externalId: 'store-1' };
+    const noHeader = await api.request('/map/places/transactions', {
+      method: 'POST',
+      body: JSON.stringify(tx),
+    });
+    expect(noHeader.status).toBe(401);
+    expect(await noHeader.json()).toEqual({ error: 'Unauthorized' });
+    const wrong = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer secreX' },
+      body: JSON.stringify(tx),
+    });
+    expect(wrong.status).toBe(401);
+    expect(await wrong.json()).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('rejects invalid JSON, a bad origin, and a future occurredAt', async () => {
+    const api = app({ token: 'secret' });
+    const badJson = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: '{',
+    });
+    expect(badJson.status).toBe(400);
+    const badOrigin = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'DFX', externalId: 'store-1' }),
+    });
+    expect(badOrigin.status).toBe(400);
+    expect(await badOrigin.json()).toEqual({ error: 'Place origin is invalid' });
+    const future = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        origin: 'dfx',
+        externalId: 'store-1',
+        occurredAt: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
+      }),
+    });
+    expect(future.status).toBe(400);
+    expect(await future.json()).toEqual({ error: 'Place transaction time is invalid' });
+  });
+
+  it('returns 404 for an unknown pair and does not call fetchImpl', async () => {
+    const calls: string[] = [];
+    const api = app({
+      token: 'secret',
+      env: { BTCMAP_ACCESS_TOKEN: 'map-token' },
+      fetchImpl: async (input) => {
+        calls.push(input);
+        return new Response('{}', { status: 201 });
+      },
+    });
+    const missing = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'store-1' }),
+    });
+    expect(missing.status).toBe(404);
+    expect(await missing.json()).toEqual({ error: 'Place not found' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('records a transaction and classifies activity at the request clock', async () => {
+    const store = new MemoryMapPlaceStore();
+    const calls: string[] = [];
+    const api = app({
+      token: 'secret',
+      store,
+      env: { BTCMAP_ACCESS_TOKEN: 'map-token' },
+      fetchImpl: async (input) => {
+        calls.push(input);
+        return new Response('{}', { status: 201 });
+      },
+    });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(created.status).toBe(201);
+    expect(calls).toHaveLength(1);
+    const omitted = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'store-1' }),
+    });
+    expect(omitted.status).toBe(200);
+    expect(await omitted.json()).toEqual({ activity: 'within7Days' });
+    expect(calls).toHaveLength(1);
+    const listed = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ activity: string; externalId?: string }>;
+    };
+    expect(listed.places[0]?.activity).toBe('within7Days');
+    const oldIso = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString();
+    const older = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'store-1', occurredAt: oldIso }),
+    });
+    expect(older.status).toBe(200);
+    expect(await older.json()).toEqual({ activity: 'within7Days' });
+    expect(store.list(1)[0]?.lastTransactionAt).not.toBe(oldIso);
+    const afterOlder = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ activity: string }>;
+    };
+    expect(afterOlder.places[0]?.activity).toBe('within7Days');
+    const other = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, externalId: 'store-old' }),
+    });
+    expect(other.status).toBe(201);
+    const noneRes = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'store-old', occurredAt: oldIso }),
+    });
+    expect(noneRes.status).toBe(200);
+    expect(await noneRes.json()).toEqual({ activity: 'olderThan30Days' });
+    expect(store.list(10).find((row) => row.externalId === 'store-old')?.lastTransactionAt).toBe(
+      oldIso,
+    );
+    expect(calls).toHaveLength(2);
+  });
+
+  it('classifies activity from the injected clock', async () => {
+    const nowMs = Date.parse('2026-10-08T00:00:00.000Z');
+    const api = app({ token: 'secret', now: () => nowMs });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, externalId: 'ten-days', name: 'Ten Days' }),
+    });
+    expect(created.status).toBe(201);
+    const tenDays = new Date(nowMs - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const older = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'ten-days', occurredAt: tenDays }),
+    });
+    expect(older.status).toBe(200);
+    expect(await older.json()).toEqual({ activity: 'within30Days' });
+    const listed = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ name: string; activity: string }>;
+    };
+    expect(listed.places.find((row) => row.name === 'Ten Days')?.activity).toBe('within30Days');
+    const seven = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, externalId: 'seven-days', name: 'Seven Days' }),
+    });
+    expect(seven.status).toBe(201);
+    const sevenDays = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recent = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'seven-days', occurredAt: sevenDays }),
+    });
+    expect(recent.status).toBe(200);
+    expect(await recent.json()).toEqual({ activity: 'within7Days' });
+  });
+
+  it('copies stored activity on GET until refreshActivity runs at the new clock', async () => {
+    const startMs = Date.parse('2026-10-08T00:00:00.000Z');
+    let clock = startMs;
+    const store = new MemoryMapPlaceStore(() => new Date(startMs));
+    const api = app({ token: 'secret', store, now: () => clock });
+    const created = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, externalId: 'stale-clock', name: 'Stale Clock' }),
+    });
+    expect(created.status).toBe(201);
+    const sevenDays = new Date(startMs - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recorded = await api.request('/map/places/transactions', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ origin: 'dfx', externalId: 'stale-clock', occurredAt: sevenDays }),
+    });
+    expect(recorded.status).toBe(200);
+    expect(await recorded.json()).toEqual({ activity: 'within7Days' });
+    clock = startMs + 1;
+    const listed = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ name: string; activity: string }>;
+    };
+    expect(listed.places.find((row) => row.name === 'Stale Clock')?.activity).toBe('within7Days');
+    store.refreshActivity(clock);
+    const after = (await (await api.request('/map/places')).json()) as {
+      places: Array<{ name: string; activity: string }>;
+    };
+    expect(after.places.find((row) => row.name === 'Stale Clock')?.activity).toBe('within30Days');
   });
 });
