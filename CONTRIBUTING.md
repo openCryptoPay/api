@@ -29,7 +29,7 @@ Before a change is ready, run the same commands CI runs. Bun is pinned to `1.3.1
 - `bun run e2e:check` — every exported function and every HTTP route has an end-to-end title or request
 - `bun run test:coverage` — 100 percent lines, branches, functions, and statements under `src`, except `src/index.ts`
 - `bun run build`
-- `bun run e2e` — HTTP checks against `GET /`, `GET /healthz`, and `/map/places`
+- `bun run e2e` — HTTP checks against `GET /`, `GET /healthz`, `/map/places`, and `/admin/places`
 
 Do not lower a coverage threshold to land a change. A genuinely unreachable branch needs a `v8 ignore` comment that says why.
 

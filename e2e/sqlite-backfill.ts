@@ -266,7 +266,95 @@ try {
   }
 }
 
+let listAllOk = false;
 if (schemaOk) {
+  const listDir = mkdtempSync(join(tmpdir(), 'sqlite-list-all-'));
+  const listFile = join(listDir, 'map.sqlite');
+  let listStore: SqliteMapPlaceStore | undefined;
+  try {
+    listStore = new SqliteMapPlaceStore(listFile);
+    const complete = listStore.insertIfNew({ ...COMPLETE, externalId: 'complete' });
+    const incomplete = listStore.insertIfNew({
+      ...COMPLETE,
+      externalId: 'incomplete',
+      name: '',
+    });
+    const order = new Database(listFile);
+    try {
+      order
+        .query('UPDATE map_place SET created_at = ? WHERE external_id = ?')
+        .run('2000-01-01T00:00:00.000Z', 'complete');
+      order
+        .query('UPDATE map_place SET created_at = ? WHERE external_id = ?')
+        .run('2100-01-01T00:00:00.000Z', 'incomplete');
+    } finally {
+      order.close();
+    }
+    const initialAll = listStore.listAll();
+    for (let index = 0; index < 501; index += 1) {
+      listStore.insertIfNew({
+        ...COMPLETE,
+        externalId: `bulk-${String(index)}`,
+        name: `Bulk Place ${String(index)}`,
+        supports: [{ blockchain: 'Bitcoin', asset: `BTC-${String(index)}` }],
+      });
+    }
+    const all = listStore.listAll();
+    const publicRows = listStore.list(1000);
+    const bulk = all.filter((row) => row.externalId.startsWith('bulk-'));
+    if (
+      complete.created &&
+      incomplete.created &&
+      initialAll.length === 2 &&
+      initialAll[0]?.externalId === 'incomplete' &&
+      initialAll[1]?.externalId === 'complete' &&
+      all.length === 503 &&
+      all[0]?.externalId === 'incomplete' &&
+      all[all.length - 1]?.externalId === 'complete' &&
+      publicRows.length === 502 &&
+      publicRows.some((row) => row.externalId === 'complete') &&
+      publicRows.every((row) => row.externalId !== 'incomplete') &&
+      bulk.length === 501 &&
+      bulk.every(
+        (row) =>
+          row.supports.length === 1 &&
+          row.supports[0]?.blockchain === 'Bitcoin' &&
+          row.supports[0]?.asset === `BTC-${row.externalId.slice('bulk-'.length)}`,
+      )
+    ) {
+      listAllOk = true;
+    } else {
+      process.stdout.write(
+        `${JSON.stringify({
+          all: all.length,
+          initial: initialAll.map((row) => row.externalId),
+          first: all[0]?.externalId,
+          last: all[all.length - 1]?.externalId,
+          publicRows: publicRows.length,
+          publicIncomplete: publicRows.some((row) => row.externalId === 'incomplete'),
+          bulk: bulk.length,
+          bulkWithSupports: bulk.filter((row) => row.supports.length === 1).length,
+        })}\n`,
+      );
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    process.stdout.write(
+      `${JSON.stringify({ error: error instanceof Error ? error.message : error })}\n`,
+    );
+    process.exitCode = 1;
+  } finally {
+    try {
+      if (listStore !== undefined) {
+        listStore.close();
+      }
+    } finally {
+      rmSync(listDir, { recursive: true, force: true });
+    }
+  }
+}
+
+if (schemaOk && listAllOk) {
   const activityDir = mkdtempSync(join(tmpdir(), 'sqlite-activity-backfill-'));
   const activityFile = join(activityDir, 'map.sqlite');
   let activitySeed: Database | undefined;

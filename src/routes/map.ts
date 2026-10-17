@@ -43,6 +43,57 @@ function checkIngest(
 }
 
 /**
+ * Full replace of one map pin, or insert it when the origin and external id are new.
+ * Same validation, store write, and BTC Map call as `PUT /map/places`.
+ *
+ * @param deps - Store, BTC Map environment, and fetch.
+ * @param raw - Request JSON, or null when the body is not JSON.
+ * @returns 400 with the validator message, 201 when inserted, or 200 when replaced.
+ */
+export async function putPlace(
+  deps: {
+    store: MapPlaceStore;
+    env: Record<string, string | undefined>;
+    fetchImpl: FetchLike;
+  },
+  raw: unknown,
+): Promise<
+  | { status: 400; body: { error: string } }
+  | { status: 200 | 201; body: { created: boolean; id: string; btcmap: MapPushResult } }
+> {
+  const parsed = normalizeMapPlace(raw);
+  if (!parsed.ok) {
+    return { status: 400, body: { error: parsed.error } };
+  }
+  const { created, place } = deps.store.upsert(parsed.value);
+  let btcmap: MapPushResult = 'skipped';
+  if (created) {
+    btcmap = await pushMapPlace(place, deps.env, deps.fetchImpl);
+  }
+  return { status: created ? 201 : 200, body: { created, id: place.id, btcmap } };
+}
+
+/**
+ * Remove one map pin by origin and external id.
+ * Same validation as `DELETE /map/places`. A missing pair is `{ deleted: false }`.
+ *
+ * @param deps - Store.
+ * @param raw - Request JSON, or null when the body is not JSON.
+ * @returns 400 with the validator message, or 200 `{ deleted }`.
+ */
+export function deletePlace(
+  deps: { store: MapPlaceStore },
+  raw: unknown,
+): { status: 400; body: { error: string } } | { status: 200; body: { deleted: boolean } } {
+  const parsed = normalizeMapPlaceKey(raw);
+  if (!parsed.ok) {
+    return { status: 400, body: { error: parsed.error } };
+  }
+  const deleted = deps.store.deleteByKey(parsed.value.origin, parsed.value.externalId);
+  return { status: 200, body: { deleted } };
+}
+
+/**
  * Public map list and ingest. Mounted at `/map`.
  *
  * @param deps - Store, ingest token, BTC Map environment, and an optional clock.
@@ -144,16 +195,8 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
       return c.json({ error: 'Unauthorized' }, 401);
     }
     const raw: unknown = await c.req.json().catch(() => null);
-    const parsed = normalizeMapPlace(raw);
-    if (!parsed.ok) {
-      return c.json({ error: parsed.error }, 400);
-    }
-    const { created, place } = deps.store.upsert(parsed.value);
-    let btcmap: MapPushResult = 'skipped';
-    if (created) {
-      btcmap = await pushMapPlace(place, deps.env, deps.fetchImpl);
-    }
-    return c.json({ created, id: place.id, btcmap }, created ? 201 : 200);
+    const result = await putPlace(deps, raw);
+    return c.json(result.body, result.status);
   });
 
   app.delete('/places', async (c) => {
@@ -165,12 +208,8 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
       return c.json({ error: 'Unauthorized' }, 401);
     }
     const raw: unknown = await c.req.json().catch(() => null);
-    const parsed = normalizeMapPlaceKey(raw);
-    if (!parsed.ok) {
-      return c.json({ error: parsed.error }, 400);
-    }
-    const deleted = deps.store.deleteByKey(parsed.value.origin, parsed.value.externalId);
-    return c.json({ deleted });
+    const result = deletePlace(deps, raw);
+    return c.json(result.body, result.status);
   });
 
   app.post('/places/transactions', async (c) => {

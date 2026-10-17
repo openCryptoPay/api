@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MAP_PLACE_SCHEMA_SQL, MemoryMapPlaceStore } from '@/lib/map/store';
+import { MAP_PLACE_SCHEMA_SQL, MemoryMapPlaceStore, placeProblems } from '@/lib/map/store';
 import type { MapPlaceInput, ShopType } from '@/lib/map/place';
 
 const DESCRIPTION =
@@ -656,5 +656,83 @@ describe('MemoryMapPlaceStore', () => {
     expect(store.recordTransaction('dfx', 'store-1', last, nowMs)?.activity).toBe('within30Days');
     store.refreshActivity(nowMs + 1);
     expect(store.list(1)[0]?.activity).toBe('olderThan30Days');
+  });
+});
+
+describe('placeProblems', () => {
+  const place = new MemoryMapPlaceStore(() => new Date('2026-09-26T00:00:00.000Z')).insertIfNew(
+    input,
+  ).place;
+
+  it('names each empty field on its own', () => {
+    expect(placeProblems({ ...place, name: '' })).toEqual(['name is empty']);
+    expect(placeProblems({ ...place, description: '' })).toEqual(['description is empty']);
+    expect(placeProblems({ ...place, street: '' })).toEqual(['street is empty']);
+    expect(placeProblems({ ...place, houseNumber: '' })).toEqual(['houseNumber is empty']);
+    expect(placeProblems({ ...place, postalCode: '' })).toEqual(['postalCode is empty']);
+    expect(placeProblems({ ...place, city: '' })).toEqual(['city is empty']);
+    expect(placeProblems({ ...place, country: '' })).toEqual(['country is empty']);
+  });
+
+  it('names an invalid shop type and an invalid instant', () => {
+    expect(placeProblems({ ...place, shopType: 'Migros' as ShopType })).toEqual([
+      'shopType must be SPAR or Others',
+    ]);
+    expect(placeProblems({ ...place, lastTransactionAt: 'not-a-date' })).toEqual([
+      'lastTransactionAt is not a valid instant',
+    ]);
+  });
+
+  it('returns no problems for a complete pin', () => {
+    expect(placeProblems(place)).toEqual([]);
+  });
+
+  it('lists every problem in check order', () => {
+    expect(
+      placeProblems({
+        ...place,
+        name: '',
+        description: '',
+        street: '',
+        houseNumber: '',
+        postalCode: '',
+        city: '',
+        country: '',
+        shopType: 'Migros' as ShopType,
+        lastTransactionAt: 'not-a-date',
+      }),
+    ).toEqual([
+      'name is empty',
+      'description is empty',
+      'street is empty',
+      'houseNumber is empty',
+      'postalCode is empty',
+      'city is empty',
+      'country is empty',
+      'shopType must be SPAR or Others',
+      'lastTransactionAt is not a valid instant',
+    ]);
+  });
+});
+
+describe('MemoryMapPlaceStore.listAll', () => {
+  it('lists incomplete rows newest first and returns copies', () => {
+    let tick = 0;
+    const store = new MemoryMapPlaceStore(() => new Date(Date.UTC(2026, 0, 1, 0, 0, tick++)));
+    store.insertIfNew(input);
+    store.insertIfNew({ ...input, externalId: 'blank', name: '' });
+    store.insertIfNew({ ...input, externalId: 'newer' });
+    expect(store.list(10).map((row) => row.externalId)).toEqual(['newer', 'store-1']);
+    const all = store.listAll();
+    expect(all.map((row) => row.externalId)).toEqual(['newer', 'blank', 'store-1']);
+    const blank = all.find((row) => row.externalId === 'blank');
+    expect(blank).toBeDefined();
+    if (blank !== undefined) {
+      blank.name = 'mutated';
+      blank.supports.push({ blockchain: 'Bitcoin', asset: 'BTC' });
+    }
+    const again = store.listAll().find((row) => row.externalId === 'blank');
+    expect(again?.name).toBe('');
+    expect(again?.supports).toEqual([]);
   });
 });

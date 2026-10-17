@@ -24,6 +24,8 @@ const COMPLETE_PLACE_SQL = `(name IS NOT NULL AND name != ''
   AND country IS NOT NULL AND country != ''
   AND (last_transaction_at IS NULL OR julianday(last_transaction_at) IS NOT NULL))`;
 
+const SUPPORT_ID_CHUNK = 500;
+
 type MapPlaceRow = {
   id: string;
   origin: string;
@@ -140,21 +142,24 @@ function loadSupportsByPlaceId(db: Database, ids: string[]): Map<string, MapPlac
   if (ids.length === 0) {
     return supportsById;
   }
-  const placeholders = ids.map(() => '?').join(', ');
-  const rows = db
-    .query(
-      `SELECT place_id, blockchain, asset
-       FROM map_place_support
-       WHERE place_id IN (${placeholders})
-       ORDER BY blockchain, asset`,
-    )
-    .all(...ids) as Array<{ place_id: string; blockchain: string; asset: string }>;
-  for (const row of rows) {
-    const list = supportsById.get(row.place_id);
-    if (list === undefined) {
-      throw new Error('map place support for unknown id');
+  for (let start = 0; start < ids.length; start += SUPPORT_ID_CHUNK) {
+    const chunk = ids.slice(start, start + SUPPORT_ID_CHUNK);
+    const placeholders = chunk.map(() => '?').join(', ');
+    const rows = db
+      .query(
+        `SELECT place_id, blockchain, asset
+         FROM map_place_support
+         WHERE place_id IN (${placeholders})
+         ORDER BY blockchain, asset`,
+      )
+      .all(...chunk) as Array<{ place_id: string; blockchain: string; asset: string }>;
+    for (const row of rows) {
+      const list = supportsById.get(row.place_id);
+      if (list === undefined) {
+        throw new Error('map place support for unknown id');
+      }
+      list.push({ blockchain: row.blockchain, asset: row.asset });
     }
-    list.push({ blockchain: row.blockchain, asset: row.asset });
   }
   return supportsById;
 }
@@ -228,6 +233,8 @@ function replaceSupportRows(db: Database, placeId: string, supports: MapPlaceSup
  * end-to-end run.
  * Opening an old-schema file (shop_name present, description and shop_type
  * missing) and hiding incomplete rows is exercised by e2e/sqlite-backfill.ts.
+ * It also checks that listAll returns incomplete rows, and that supports load in
+ * chunks for more than 500 places.
  */
 export class SqliteMapPlaceStore implements MapPlaceStore {
   readonly #db: Database;
@@ -603,6 +610,22 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
          LIMIT ?`,
       )
       .all(...params, limit) as MapPlaceRow[];
+    return mapRows(this.#db, rows);
+  }
+
+  /**
+   * Every stored pin, including incomplete ones. Newest first, then id descending.
+   *
+   * @returns Stored pins. No filter and no limit.
+   */
+  listAll(): StoredMapPlace[] {
+    const rows = this.#db
+      .query(
+        `SELECT ${MAP_PLACE_COLUMNS}
+         FROM map_place
+         ORDER BY created_at DESC, id DESC`,
+      )
+      .all() as MapPlaceRow[];
     return mapRows(this.#db, rows);
   }
 

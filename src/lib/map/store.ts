@@ -72,6 +72,14 @@ function compareSupport(a: MapPlaceSupport, b: MapPlaceSupport): number {
   return 0;
 }
 
+function compareNewest(a: StoredMapPlace, b: StoredMapPlace): number {
+  const byTime = b.createdAt.localeCompare(a.createdAt);
+  if (byTime !== 0) {
+    return byTime;
+  }
+  return b.id.localeCompare(a.id);
+}
+
 function storedSupports(items: MapPlaceSupport[]): MapPlaceSupport[] {
   const sorted = [...items]
     .map((item) => ({ blockchain: item.blockchain, asset: item.asset }))
@@ -98,26 +106,54 @@ function copyStoredPlace(place: StoredMapPlace): StoredMapPlace {
 }
 
 /**
- * A memory-store row is complete when name, description, shop type, street,
- * house number, postal code, city, and country are non-empty, shop type is
- * SPAR or Others, and lastTransactionAt is null or a parseable instant.
+ * List why the public map hides a stored pin. This defines the completeness rule for
+ * `MemoryMapPlaceStore` and supplies `complete` and `problems` on `GET /admin/places`.
+ * `SqliteMapPlaceStore` applies the same rule in SQL via `COMPLETE_PLACE_SQL` for its public list.
+ * Empty when the pin is complete.
+ * A row is complete when name, description, street, house number, postal code,
+ * city, and country are non-empty, shop type is SPAR or Others, and
+ * lastTransactionAt is null or a parseable instant.
+ *
+ * @param place - Stored pin, including an incomplete row.
+ * @returns The problems, in check order. No I/O.
  */
+export function placeProblems(place: StoredMapPlace): string[] {
+  const problems: string[] = [];
+  if (place.name === '') {
+    problems.push('name is empty');
+  }
+  if (place.description === '') {
+    problems.push('description is empty');
+  }
+  if (place.street === '') {
+    problems.push('street is empty');
+  }
+  if (place.houseNumber === '') {
+    problems.push('houseNumber is empty');
+  }
+  if (place.postalCode === '') {
+    problems.push('postalCode is empty');
+  }
+  if (place.city === '') {
+    problems.push('city is empty');
+  }
+  if (place.country === '') {
+    problems.push('country is empty');
+  }
+  if (place.shopType !== 'SPAR' && place.shopType !== 'Others') {
+    problems.push('shopType must be SPAR or Others');
+  }
+  const lastTransactionAt = place.lastTransactionAt;
+  const lastInstantOk =
+    lastTransactionAt === null || Number.isFinite(Date.parse(lastTransactionAt));
+  if (!lastInstantOk) {
+    problems.push('lastTransactionAt is not a valid instant');
+  }
+  return problems;
+}
+
 function isCompletePlace(row: StoredMapPlace): boolean {
-  if (
-    row.name === '' ||
-    row.description === '' ||
-    row.street === '' ||
-    row.houseNumber === '' ||
-    row.postalCode === '' ||
-    row.city === '' ||
-    row.country === ''
-  ) {
-    return false;
-  }
-  if (row.shopType !== 'SPAR' && row.shopType !== 'Others') {
-    return false;
-  }
-  return row.lastTransactionAt === null || Number.isFinite(Date.parse(row.lastTransactionAt));
+  return placeProblems(row).length === 0;
 }
 
 function matchesFilter(row: StoredMapPlace, filter?: MapPlaceListFilter): boolean {
@@ -212,6 +248,7 @@ export interface MapPlaceStore {
   refreshActivity(nowMs: number): void;
   deleteByKey(origin: string, externalId: string): boolean;
   list(limit: number, filter?: MapPlaceListFilter): StoredMapPlace[];
+  listAll(): StoredMapPlace[];
   filters(blockchain?: string | undefined): {
     countries: string[];
     blockchains: string[];
@@ -407,15 +444,18 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
   list(limit: number, filter?: MapPlaceListFilter): StoredMapPlace[] {
     const rows = this.#rows.filter((row) => isCompletePlace(row) && matchesFilter(row, filter));
     return [...rows]
-      .sort((a, b) => {
-        const byTime = b.createdAt.localeCompare(a.createdAt);
-        if (byTime !== 0) {
-          return byTime;
-        }
-        return b.id.localeCompare(a.id);
-      })
+      .sort(compareNewest)
       .slice(0, limit)
       .map((row) => copyStoredPlace(row));
+  }
+
+  /**
+   * Every stored pin, including incomplete ones. Newest first, then id descending.
+   *
+   * @returns A copy of each row. No filter and no limit.
+   */
+  listAll(): StoredMapPlace[] {
+    return [...this.#rows].sort(compareNewest).map((row) => copyStoredPlace(row));
   }
 
   /**
