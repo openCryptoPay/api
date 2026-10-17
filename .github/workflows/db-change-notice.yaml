@@ -67,10 +67,11 @@ jobs:
               pull_number: context.payload.pull_request.number,
               per_page: 100,
             });
-            // The files endpoint stops at 3000 entries without saying so. A list shorter than the
+            // The files endpoint stops at 3000 entries without saying so. A list of 3000 or one shorter than the
             // pull request's changed_files may hide triggers, so the notice is then required: an
             // entry without a patch is the fail-closed trigger the script already knows.
-            const truncated = files.length < context.payload.pull_request.changed_files;
+            const truncated =
+              files.length >= 3000 || files.length < context.payload.pull_request.changed_files;
             const listed = truncated
               ? [...files, { filename: 'src/(file list truncated by the GitHub API).ts' }]
               : files;

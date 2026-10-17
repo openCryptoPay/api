@@ -68,6 +68,68 @@ function stripFencedCode(text) {
   return kept.join('\n');
 }
 
+// A run of N backticks opens a span and closes at the next run of exactly N on
+// the same line. An unmatched run stays. The span, backticks included, is removed.
+function stripInlineCode(line) {
+  let kept = '';
+  let index = 0;
+  while (index < line.length) {
+    if (line[index] !== '`') {
+      kept += line[index];
+      index += 1;
+      continue;
+    }
+    let length = 0;
+    while (index + length < line.length && line[index + length] === '`') length += 1;
+    let cursor = index + length;
+    let close = -1;
+    while (cursor < line.length) {
+      if (line[cursor] !== '`') {
+        cursor += 1;
+        continue;
+      }
+      let run = 0;
+      while (cursor + run < line.length && line[cursor + run] === '`') run += 1;
+      if (run === length) {
+        close = cursor;
+        break;
+      }
+      cursor += run;
+    }
+    if (close === -1) {
+      kept += line.slice(index, index + length);
+      index += length;
+      continue;
+    }
+    index = close + length;
+  }
+  return kept;
+}
+
+// Indented code is a line of 4+ spaces or a tab that follows a blank line or
+// another indented-code line. The first line counts as following a blank line.
+// A 4-space line right after ordinary text is a lazy continuation and stays.
+function stripCode(input) {
+  const lines = input.split(/\r?\n/);
+  const kept = [];
+  let afterBlank = true;
+  let afterIndentedCode = false;
+  for (const line of lines) {
+    const blank = line.trim() === '';
+    const indented = line.startsWith('\t') || line.startsWith('    ');
+    if (!blank && indented && (afterBlank || afterIndentedCode)) {
+      kept.push('');
+      afterBlank = false;
+      afterIndentedCode = true;
+      continue;
+    }
+    kept.push(stripInlineCode(line));
+    afterBlank = blank;
+    afterIndentedCode = false;
+  }
+  return kept.join('\n');
+}
+
 /**
  * Remove HTML comments, including comments that span lines.
  * @param {string} text
@@ -96,13 +158,13 @@ function stripDetails(text) {
 
 /**
  * Pull-request body after hidden regions are removed.
- * Hidden regions are fenced code, HTML comments, and `<details>` blocks.
+ * Hidden regions are fenced code, inline and indented code, HTML comments, and `<details>` blocks.
  * @param {string | null | undefined} body
  * @returns {string}
  */
 export function visibleBody(body) {
   const source = body ?? '';
-  return stripDetails(stripHtmlComments(stripFencedCode(source)));
+  return stripDetails(stripHtmlComments(stripCode(stripFencedCode(source))));
 }
 
 /**

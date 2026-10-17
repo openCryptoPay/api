@@ -232,3 +232,17 @@ describe('marker visibility', () => {
     assert.equal(visibleBody(body).includes('hidden'), false);
   });
 });
+
+it('a </details> inside inline code does not reveal a hidden marker', () => {
+  const body = '<details>\n`</details>`\n\n⚠️ 🗄️ Attention: database change\n\n</details>';
+  assert.equal(isMarkerVisible(body), false);
+});
+
+it('a </details> inside indented code does not reveal a hidden marker', () => {
+  const body = '<details>\n\n    </details>\n\n⚠️ 🗄️ Attention: database change\n\n</details>';
+  assert.equal(isMarkerVisible(body), false);
+});
+
+it('a visible marker next to inline code stays visible', () => {
+  assert.equal(isMarkerVisible('Uses `sql.query`.\n\n⚠️ 🗄️ Attention: database change'), true);
+});
