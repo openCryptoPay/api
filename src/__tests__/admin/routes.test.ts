@@ -1341,6 +1341,79 @@ describe('admin routes', () => {
     expect(calls).toEqual([]);
   });
 
+  it('sets active on a shop with no NOSTR key when the body is only id and active', async () => {
+    const store = new MemoryMapPlaceStore(() => new Date(NOW_MS));
+    const inserted = store.insertIfNew(pin);
+    if (!inserted.ok) {
+      throw new Error(inserted.error);
+    }
+    const row = inserted.place;
+    const api = build({ store });
+    const signed = bind(api);
+    const hidden = await signed('PUT', '/admin/places', jsonBytes({ id: row.id, active: false }));
+    expect(hidden.status).toBe(200);
+    expect(await hidden.json()).toEqual({
+      created: false,
+      id: row.id,
+      npub: null,
+      btcmap: 'skipped',
+    });
+    expect(store.getById(row.id)).toMatchObject({
+      nostrPubkey: null,
+      active: false,
+      name: row.name,
+      externalId: row.externalId,
+      createdAt: row.createdAt,
+      activity: row.activity,
+    });
+    expect(store.listAll().some((place) => place.id === row.id)).toBe(true);
+    const hiddenList = await api.request('/map/places');
+    expect(hiddenList.status).toBe(200);
+    const hiddenJson = (await hiddenList.json()) as { places: Array<{ name: string }> };
+    expect(hiddenJson.places.some((place) => place.name === row.name)).toBe(false);
+    const shown = await signed('PUT', '/admin/places', jsonBytes({ id: row.id, active: true }));
+    expect(shown.status).toBe(200);
+    expect(await shown.json()).toEqual({
+      created: false,
+      id: row.id,
+      npub: null,
+      btcmap: 'skipped',
+    });
+    expect(store.getById(row.id)).toMatchObject({ active: true, nostrPubkey: null });
+    const shownList = await api.request('/map/places');
+    const shownJson = (await shownList.json()) as { places: Array<{ name: string }> };
+    expect(shownJson.places.some((place) => place.name === row.name)).toBe(false);
+    const rejected = await signed('PUT', '/admin/places', jsonBytes({ id: row.id, active: 1 }));
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toEqual({ error: 'Place active is invalid' });
+    expect(store.getById(row.id)?.active).toBe(true);
+  });
+
+  it('sets active on a keyed shop when the body is only id and active', async () => {
+    const store = new MemoryMapPlaceStore(() => new Date(NOW_MS));
+    const created = keyedStore(store).insertIfNew(pin);
+    const key = keyFor(`${pin.origin}\n${pin.externalId}`);
+    expect(created.place.nostrPubkey).toBe(key);
+    const api = build({ store });
+    const signed = bind(api);
+    const hidden = await signed(
+      'PUT',
+      '/admin/places',
+      jsonBytes({ id: created.place.id, active: false }),
+    );
+    expect(hidden.status).toBe(200);
+    expect(await hidden.json()).toEqual({
+      created: false,
+      id: created.place.id,
+      npub: npubEncode(key),
+      btcmap: 'skipped',
+    });
+    expect(store.getById(created.place.id)).toMatchObject({ active: false, nostrPubkey: key });
+    const listed = await api.request('/map/places');
+    const listedJson = (await listed.json()) as { places: Array<{ id: string }> };
+    expect(listedJson.places.some((place) => place.id === npubEncode(key))).toBe(false);
+  });
+
   it('returns 404 for a signed unknown path', async () => {
     const signed = bind(build());
     const response = await signed('GET', '/admin/no-such');

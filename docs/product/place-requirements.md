@@ -119,8 +119,11 @@ the signed admin interface keeps the internal id. The full rules are in
 - A shop already stored without a key is not served in the public list.
 - A source registration or update (`POST` or `PUT /map/places`) without a
   key is rejected with 400 (step 1b in shop-identity.md). A signed admin
-  update by internal id may leave the key out and keeps the stored one; it is
-  rejected with 400 only when the shop has no stored key.
+  content update by internal id that carries place fields may leave the key
+  out and keeps the stored one. That 400 is for a content update that carries
+  place fields, and only when the shop has no stored key. A body whose only
+  own properties are `id` and a JSON boolean `active` is not that content
+  update.
 
 ## Deactivation
 
@@ -130,4 +133,7 @@ Deactivation is not deletion. A signed admin replace by internal id
 `GET /map/places/{npub}`, a photo no other public shop uses, and the country
 aggregate of `GET /map/filters`. Completeness and `problems` ignore the flag.
 A source `POST` or `PUT /map/places` cannot set the flag. Setting `active`
-back to true is the same admin replace. Delete remains delete.
+back to true is the same admin replace. Delete remains delete. A body whose
+only own properties are `id` and a JSON boolean `active` sets that flag,
+leaves a missing key missing, does not delete the row, and the success
+`npub` is null.
