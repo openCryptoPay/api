@@ -161,8 +161,8 @@ Name examples: `SPAR Maschlinastrasse 4, 9495 Triesen` (`spar`) and
   write without one is rejected.
 - **Code:** met with #26 (steps 1a and 1b of [shop-identity.md](shop-identity.md)).
   `POST` and `PUT /map/places` require and validate `nostrPubkey` (400 without
-  it; a signed admin `PUT` by internal id may leave it out and keeps the stored
-  key, 400 only when the row has none), reserve it for its origin and external id, and refuse a changed key or
+  it; a signed admin content update by internal id may leave it out and keeps the stored
+  key, 400 only when the row has none; a body whose only own properties are `id` and a JSON boolean `active` writes only that flag and is not that 400), reserve it for its origin and external id, and refuse a changed key or
   a key of another shop with 409. A row stored before step 1a has no key, is
   not complete, and stays out of `GET /map/places`, `GET /map/places/{npub}`
   and the countries of `GET /map/filters` until a write adds one.

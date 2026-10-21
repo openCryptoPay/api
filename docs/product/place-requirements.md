@@ -136,4 +136,5 @@ A source `POST` or `PUT /map/places` cannot set the flag. Setting `active`
 back to true is the same admin replace. Delete remains delete. A body whose
 only own properties are `id` and a JSON boolean `active` sets that flag,
 leaves a missing key missing, does not delete the row, and the success
-`npub` is null.
+`npub` is null exactly when the stored key is null, otherwise the npub of
+that key.

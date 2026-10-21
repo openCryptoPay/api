@@ -111,7 +111,9 @@ key a pair ever used stays reserved. The memory store keeps the same map.
 The column is nullable for rows stored before step 1a. Every source write
 carries a key (step 1b), so the write path never stores a null. A signed admin
 `PUT` by internal id may leave the key out to keep the stored one; on a row
-without a key it must send one.
+without a key a content update must send one. A body whose only own
+properties are `id` and a JSON boolean `active` writes only that flag, leaves
+a null key null, and is not that 400.
 
 `origin` + `externalId` stay the source's own key for idempotent writes. Every
 public response and every new route uses the NOSTR key instead. The internal
@@ -543,8 +545,10 @@ on the website:
   `coverPhoto` and `photos`.
 - **Step 1b, R7 enforced:** a `POST` or `PUT /map/places` without
   `nostrPubkey` is rejected with **400**. A signed admin `PUT` by internal id
-  may leave it out and keeps the stored key; it gets **400** only when the row
-  has no stored key.
+  may leave it out and keeps the stored key; a content update gets **400**
+  only when the row has no stored key. A body whose only own properties are
+  `id` and a JSON boolean `active` writes only that flag, leaves a null key
+  null, and is not that 400.
 - **Step 3, sources,** deployed together with #26: 21.gifts sends its keys
   and photos; DFX.swiss creates and sends keys for SPAR.
 - **Step 4, website,** any time after #26 is live: shop page, map and table
