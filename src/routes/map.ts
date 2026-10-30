@@ -142,6 +142,59 @@ export function deletePlace(
 }
 
 /**
+ * Replace every photo of one shop.
+ * Same envelope, photo checks, and store write as `PUT /map/places/photos`: a photo that
+ * breaks a rule is skipped and reported, and the others are stored in their order.
+ *
+ * @param deps - Store and the public base URL of photo URLs.
+ * @param raw - Request JSON, or null when the body is not JSON.
+ * @returns 400 with the envelope message, 404 `Place not found`, 409 `Stale revision` (R8),
+ * or 200 with the stored photos and the skipped ones.
+ */
+export function replacePlacePhotos(
+  deps: { store: MapPlaceStore; publicBaseUrl: string },
+  raw: unknown,
+):
+  | { status: 400; body: { error: string } }
+  | { status: 404; body: { error: 'Place not found' } }
+  | { status: 409; body: { error: 'Stale revision' } }
+  | {
+      status: 200;
+      body: {
+        photos: ReturnType<typeof publicPhoto>[];
+        skipped: Array<{ index: number; error: string }>;
+      };
+    } {
+  const parsed = normalizePhotoUpload(raw);
+  if (!parsed.ok) {
+    return { status: 400, body: { error: parsed.error } };
+  }
+  const prepared: PreparedPhoto[] = [];
+  const skipped: Array<{ index: number; error: string }> = [];
+  for (const [index, entry] of parsed.value.photos.entries()) {
+    const photo = preparePhoto(entry, index);
+    if (photo.ok) {
+      prepared.push(photo.photo);
+    } else {
+      skipped.push({ index, error: photo.error });
+    }
+  }
+  const result = deps.store.replacePhotos(
+    parsed.value.origin,
+    parsed.value.nostrPubkey,
+    prepared,
+    parsed.value.revision,
+  );
+  if (!result.ok) {
+    return result.error === 'Place not found'
+      ? { status: 404, body: { error: result.error } }
+      : { status: 409, body: { error: result.error } };
+  }
+  const photos = result.photos.map((photo) => publicPhoto(photo, deps.publicBaseUrl));
+  return { status: 200, body: { photos, skipped } };
+}
+
+/**
  * Public map list and ingest. Mounted at `/map`.
  *
  * @param deps - Store, ingest token, BTC Map environment, and an optional clock.
@@ -306,31 +359,11 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
 
   app.put('/places/photos', requireIngest, photoBodyLimit, async (c) => {
     const raw: unknown = await c.req.json().catch(() => null);
-    const parsed = normalizePhotoUpload(raw);
-    if (!parsed.ok) {
-      return c.json({ error: parsed.error }, 400);
-    }
-    const prepared: PreparedPhoto[] = [];
-    const skipped: Array<{ index: number; error: string }> = [];
-    for (const [index, entry] of parsed.value.photos.entries()) {
-      const photo = preparePhoto(entry, index);
-      if (photo.ok) {
-        prepared.push(photo.photo);
-      } else {
-        skipped.push({ index, error: photo.error });
-      }
-    }
-    const result = deps.store.replacePhotos(
-      parsed.value.origin,
-      parsed.value.nostrPubkey,
-      prepared,
-      parsed.value.revision,
+    const result = replacePlacePhotos(
+      { store: deps.store, publicBaseUrl: deps.publicBaseUrl },
+      raw,
     );
-    if (!result.ok) {
-      return c.json({ error: result.error }, result.error === 'Place not found' ? 404 : 409);
-    }
-    const photos = result.photos.map((photo) => publicPhoto(photo, deps.publicBaseUrl));
-    return c.json({ photos, skipped });
+    return c.json(result.body, result.status);
   });
 
   app.get('/photos/:file', (c) => {

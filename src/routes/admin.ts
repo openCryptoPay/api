@@ -13,8 +13,9 @@ import {
   type StoredMapPlace,
 } from '@/lib/map/place';
 import { npubEncode } from '@/lib/map/nostr-key';
+import { MAX_PHOTO_BODY_BYTES } from '@/lib/map/photo';
 import { placeProblems, type AdminActivityWrite, type MapPlaceStore } from '@/lib/map/store';
-import { deletePlace, putPlace } from '@/routes/map';
+import { deletePlace, putPlace, replacePlacePhotos } from '@/routes/map';
 
 export type AdminRouteDeps = {
   store: MapPlaceStore;
@@ -36,6 +37,14 @@ type AdminEnv = {
 };
 
 const MAX_ADMIN_BODY_BYTES = 64 * 1024;
+/** The photo replace takes the photo body limit; every other admin request keeps 64 KiB. `createApp` mounts this app at `/admin`. */
+const PHOTOS_PATH = '/admin/places/photos';
+/** Same window as `verifyAdminRequest`. */
+const ADMIN_WINDOW_SECONDS = 60;
+/** Same timestamp form as `verifyAdminRequest`. */
+const INTEGER = /^-?\d+$/u;
+/** A declared body length. */
+const DECIMAL = /^\d+$/u;
 const FOUR_DIGIT_YEAR = /^\d{4}-/u;
 const PLACE_ACTIVITIES: ReadonlySet<string> = new Set(PLACE_ACTIVITY_VALUES);
 
@@ -216,7 +225,11 @@ function adminReplaceBody(
  * Signed admin maintenance for any origin. Mounted at `/admin`.
  * The signature uses the configured host, never the request Host header.
  * The body is read once and then parsed as JSON for PUT and DELETE.
- * Bodies above 64 KiB answer 413 before the signature is checked.
+ * Bodies above 64 KiB answer 413 before the signature is checked, except `PUT /places/photos`,
+ * which takes the photo body limit of `PUT /map/places/photos`. Before its body is read it needs
+ * a decimal Content-Length and no Transfer-Encoding (otherwise 411), a length within the limit
+ * (otherwise 413, whatever key it names), and an `OCP-Admin-Key` naming a configured key with an
+ * `OCP-Admin-Timestamp` integer within 60 seconds of the clock (otherwise 401).
  * GET returns the public place with the internal id as `id` and the public id
  * as `npub`, and adds the caller id, payment methods, created time, last
  * transaction time, and `active`. It does not add the refresh deadline or payment days.
@@ -229,6 +242,8 @@ function adminReplaceBody(
  * before `normalizeMapPlace`.
  * DELETE with `id` still rejects a different origin or caller id and needs no revision.
  * Without `id`, PUT and DELETE keep the origin and external id paths with the source rules.
+ * PUT `/places/photos` replaces every photo of one shop with the body and rules of
+ * `PUT /map/places/photos`, signed instead of the ingest bearer.
  *
  * @param deps - Store, BTC Map environment, allowed keys, configured host, the public base URL
  * of photo URLs, and an optional clock.
@@ -248,13 +263,37 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     await next();
   });
 
-  app.use(
-    '*',
-    bodyLimit({
-      maxSize: MAX_ADMIN_BODY_BYTES,
-      onError: (c) => c.json({ error: 'Payload too large' }, 413),
-    }),
-  );
+  const placeBodyLimit = bodyLimit({
+    maxSize: MAX_ADMIN_BODY_BYTES,
+    onError: (c) => c.json({ error: 'Payload too large' }, 413),
+  });
+  const isPhotoReplace = (method: string, path: string): boolean =>
+    method === 'PUT' && path === PHOTOS_PATH;
+  // A photo body may be 15 MiB, so it is read only after cheap header checks: a declared
+  // length (no chunked body, which bodyLimit would buffer), 413 by that length whatever key it
+  // names, then a configured key with a fresh timestamp. The signature check reads the body.
+  app.use('*', async (c, next) => {
+    if (!isPhotoReplace(c.req.method, c.req.path)) {
+      return placeBodyLimit(c, next);
+    }
+    const declared = c.req.header('Content-Length') ?? '';
+    if (!DECIMAL.test(declared) || c.req.header('Transfer-Encoding') !== undefined) {
+      return c.json({ error: 'Content-Length is required' }, 411);
+    }
+    if (Number(declared) > MAX_PHOTO_BODY_BYTES) {
+      return c.json({ error: 'Payload too large' }, 413);
+    }
+    const keyName = c.req.header('OCP-Admin-Key');
+    const rawTimestamp = c.req.header('OCP-Admin-Timestamp') ?? '';
+    if (
+      !deps.keys.some((key) => key.name === keyName) ||
+      !INTEGER.test(rawTimestamp) ||
+      Math.abs(Math.floor(now() / 1000) - Number(rawTimestamp)) > ADMIN_WINDOW_SECONDS
+    ) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    await next();
+  });
 
   app.use('*', async (c, next) => {
     const rawBody = new Uint8Array(await c.req.arrayBuffer());
@@ -392,6 +431,14 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     // The validator requires a key and replaceById refuses a different one, so it is the row's key.
     const npub = npubEncode(parsed.value.nostrPubkey);
     return c.json({ created: false, id: replaced.place.id, npub, btcmap: 'skipped' }, 200);
+  });
+
+  app.put('/places/photos', (c) => {
+    const result = replacePlacePhotos(
+      { store: deps.store, publicBaseUrl: deps.publicBaseUrl },
+      parseJsonBody(c.get('rawBody')),
+    );
+    return c.json(result.body, result.status);
   });
 
   app.delete('/places', (c) => {

@@ -8,6 +8,7 @@ import type { MapPlaceInput } from '@/lib/map/place';
 import { MemoryMapPlaceStore, type ReplaceByIdInput } from '@/lib/map/store';
 import { createApp } from '@/server';
 import { keyFor, keyedStore, withKey } from '../map/keys';
+import { base64, simplePng } from '../map/photo-fixtures';
 
 const DESCRIPTION =
   'SPAR supermarket in Triesen. Customers can pay with Bitcoin and other crypto assets through OpenCryptoPay at the checkout.';
@@ -97,8 +98,10 @@ function bind(
       keyName: overrides?.keyName ?? 'desk',
       ...(overrides?.nonce === undefined ? {} : { nonce: overrides.nonce }),
     });
-    const init: RequestInit = { method, headers: { ...headers } };
     const wire = overrides?.send ?? (body === undefined ? undefined : bytes);
+    const lengthHeader: Record<string, string> =
+      wire === undefined ? {} : { 'Content-Length': String(wire.byteLength) };
+    const init: RequestInit = { method, headers: { ...headers, ...lengthHeader } };
     if (wire !== undefined) {
       init.body = wire;
     }
@@ -1365,5 +1368,175 @@ describe('admin routes', () => {
     });
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'Unauthorized' });
+  });
+});
+
+describe('admin photo replace', () => {
+  const PHOTOS = '/admin/places/photos';
+
+  function storeWithFremd(): MemoryMapPlaceStore {
+    const store = new MemoryMapPlaceStore();
+    store.upsert(fremd);
+    return store;
+  }
+
+  function upload(photos: unknown[], extra: Record<string, unknown> = {}): Uint8Array {
+    return jsonBytes({ origin: 'fremd', nostrPubkey: fremd.nostrPubkey, photos, ...extra });
+  }
+
+  it('stores the photos of a shop and reports a skipped one', async () => {
+    const store = storeWithFremd();
+    const signed = bind(build({ store }));
+    const response = await signed(
+      'PUT',
+      PHOTOS,
+      upload([
+        { contentType: 'image/png', data: base64(simplePng(5, 4)), caption: 'Front' },
+        { contentType: 'image/jpeg', data: base64(simplePng(5, 4)) },
+      ]),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      photos: Array<{ url: string; width: number; height: number; caption: string | null }>;
+      skipped: Array<{ index: number; error: string }>;
+    };
+    expect(body.photos).toHaveLength(1);
+    expect(body.photos[0]).toMatchObject({ width: 5, height: 4, caption: 'Front' });
+    expect(body.photos[0]?.url.startsWith('https://api.test/map/photos/')).toBe(true);
+    expect(body.skipped).toHaveLength(1);
+    expect(body.skipped[0]?.index).toBe(1);
+  });
+
+  it('answers the errors of the shared photo replace', async () => {
+    const signed = bind(build({ store: storeWithFremd() }));
+    const invalid = await signed('PUT', PHOTOS, jsonBytes({ photos: 'x' }));
+    expect(invalid.status).toBe(400);
+    const missing = await signed(
+      'PUT',
+      PHOTOS,
+      jsonBytes({ origin: 'other', nostrPubkey: fremd.nostrPubkey, photos: [] }),
+    );
+    expect(missing.status).toBe(404);
+    expect(await missing.json()).toEqual({ error: 'Place not found' });
+    const first = await signed('PUT', PHOTOS, upload([], { revision: 5 }));
+    expect(first.status).toBe(200);
+    const stale = await signed('PUT', PHOTOS, upload([], { revision: 5 }));
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toEqual({ error: 'Stale revision' });
+  });
+
+  it('reads a body above 64 KiB on the photo path only', async () => {
+    const signed = bind(build({ store: storeWithFremd() }));
+    const large = new Uint8Array(64 * 1024 + 1);
+    const photo = await signed('PUT', PHOTOS, large);
+    expect(photo.status).toBe(400);
+    const place = await signed('PUT', '/admin/places', large);
+    expect(place.status).toBe(413);
+  });
+
+  it('answers 401 before reading a photo body without a known key and a fresh timestamp', async () => {
+    const api = build();
+    const headers: Array<Record<string, string>> = [
+      {},
+      { 'OCP-Admin-Key': 'laptop', 'OCP-Admin-Timestamp': String(NOW_SECONDS) },
+      { 'OCP-Admin-Key': 'desk' },
+      { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': 'soon' },
+      { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': `${String(NOW_SECONDS)}.0` },
+      { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS - 61) },
+      { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS + 61) },
+    ];
+    for (const header of headers) {
+      let pulled = false;
+      // A high-water mark of 0 pulls only when the server reads the body.
+      const body = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            pulled = true;
+            controller.enqueue(new Uint8Array(1_048_576));
+            controller.close();
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
+        method: 'PUT',
+        headers: { ...header, 'Content-Length': '1048576' },
+        body,
+        duplex: 'half',
+      } as RequestInit);
+      await expectUnauthorized(response);
+      expect(pulled).toBe(false);
+    }
+  });
+
+  it('answers 411 for a photo body without a declared length', async () => {
+    const api = build();
+    const fresh = { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS) };
+    for (const headers of [
+      fresh,
+      { ...fresh, 'Content-Length': 'ten' },
+      { ...fresh, 'Content-Length': '10', 'Transfer-Encoding': 'chunked' },
+    ]) {
+      const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
+        method: 'PUT',
+        headers,
+        body: new Uint8Array(10),
+      });
+      expect(response.status).toBe(411);
+      expect(await response.json()).toEqual({ error: 'Content-Length is required' });
+    }
+  });
+
+  it('answers 413 for an oversized photo body whatever key name it sends', async () => {
+    const api = build();
+    for (const keyName of ['desk', 'laptop']) {
+      const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
+        method: 'PUT',
+        headers: {
+          'OCP-Admin-Key': keyName,
+          'OCP-Admin-Timestamp': String(NOW_SECONDS),
+          'Content-Length': String(15 * 1_048_576 + 1),
+        },
+        body: new Uint8Array(1),
+      });
+      expect(response.status).toBe(413);
+      expect(await response.json()).toEqual({ error: 'Payload too large' });
+    }
+  });
+
+  it('answers 413 for a signed photo body above 15 MiB', async () => {
+    const signed = bind(build());
+    const response = await signed('PUT', PHOTOS, new Uint8Array(15 * 1_048_576 + 1));
+    expect(response.status).toBe(413);
+  });
+
+  it('keeps 64 KiB for another method or another path ending in /places/photos', async () => {
+    const api = build({ store: storeWithFremd() });
+    const large = new Uint8Array(64 * 1024 + 1);
+    const headers = { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS) };
+    for (const [method, path] of [
+      ['DELETE', PHOTOS],
+      ['PUT', '/admin/x/places/photos'],
+      ['PUT', `${PHOTOS}/`],
+    ] as const) {
+      const response = await api.request(`http://${REQUEST_HOST}${path}`, {
+        method,
+        headers,
+        body: large,
+      });
+      expect(response.status).toBe(413);
+    }
+  });
+
+  it('accepts a photo upload signed exactly 60 seconds ago', async () => {
+    const signed = bind(build({ store: storeWithFremd() }));
+    const response = await signed('PUT', PHOTOS, upload([]), { timestamp: NOW_SECONDS - 60 });
+    expect(response.status).toBe(200);
+  });
+
+  it('still checks the signature after the header check', async () => {
+    const signed = bind(build({ store: storeWithFremd() }));
+    const response = await signed('PUT', PHOTOS, upload([]), { host: REQUEST_HOST });
+    await expectUnauthorized(response);
   });
 });

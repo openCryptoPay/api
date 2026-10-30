@@ -12,6 +12,7 @@ import { join } from 'node:path';
 const KEY_NAME = /^[A-Za-z0-9._@][A-Za-z0-9._@-]{0,63}$/u;
 const ED25519_SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
 const ADMIN_PATH = '/admin/places';
+const PHOTOS_PATH = '/admin/places/photos';
 const REVISION = /^[1-9][0-9]{0,15}$/u;
 
 function usage() {
@@ -20,6 +21,7 @@ function usage() {
   ocp-admin.mjs list --base <https://host> --key <name>
   ocp-admin.mjs put <file.json> --base <https://host> --key <name>
   ocp-admin.mjs delete <origin> <externalId> --base <https://host> --key <name> [--revision <n>]
+  ocp-admin.mjs photos <file.json> --base <https://host> --key <name>
 
 <name> matches ^[A-Za-z0-9._@][A-Za-z0-9._@-]{0,63}$. The key file is ~/.ocp-admin/<name>.key.
 --revision is an integer from 1 to 9007199254740991, higher than the place's stored revision;
@@ -363,6 +365,92 @@ async function cmdDelete(argv) {
   process.exit(1);
 }
 
+function photoKeyOf(value) {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof value.nostrPubkey === 'string' &&
+    value.nostrPubkey !== ''
+  ) {
+    return value.nostrPubkey.replace(/[\r\n]+/gu, ' ');
+  }
+  return '-';
+}
+
+async function cmdPhotos(argv) {
+  const args = parseArgs(argv);
+  if (args.positional.length !== 1) {
+    failUsage();
+  }
+  const where = endpoint(args.base, args.key);
+  let text;
+  try {
+    text = readFileSync(args.positional[0], 'utf8');
+  } catch {
+    process.stderr.write('could not read the photos file\n');
+    process.exit(1);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    process.stderr.write('photos file is not JSON\n');
+    process.exit(1);
+  }
+  if (!Array.isArray(parsed)) {
+    process.stderr.write('photos file must be a JSON array\n');
+    process.exit(1);
+  }
+  const privateKey = loadPrivateKey(where.key);
+  let failed = false;
+  for (const element of parsed) {
+    const key = photoKeyOf(element);
+    if (typeof element !== 'object' || element === null || Array.isArray(element)) {
+      process.stdout.write(`fail ${key} 0 invalid upload\n`);
+      failed = true;
+      continue;
+    }
+    const body = Buffer.from(JSON.stringify(element), 'utf8');
+    let response;
+    try {
+      response = await signedFetch('PUT', where, PHOTOS_PATH, body, privateKey);
+    } catch {
+      process.stdout.write(`fail ${key} 0 request failed\n`);
+      failed = true;
+      continue;
+    }
+    if (!response.ok) {
+      const message = await apiError(response);
+      process.stdout.write(`fail ${key} ${String(response.status)} ${message}\n`);
+      failed = true;
+      continue;
+    }
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      !Array.isArray(result.photos) ||
+      !Array.isArray(result.skipped)
+    ) {
+      process.stdout.write(`fail ${key} ${String(response.status)} unexpected response\n`);
+      failed = true;
+      continue;
+    }
+    process.stdout.write(
+      `ok ${key} ${String(result.photos.length)} stored ${String(result.skipped.length)} skipped\n`,
+    );
+  }
+  if (failed) {
+    process.exit(1);
+  }
+}
+
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
   if (command === 'keygen') {
@@ -379,6 +467,10 @@ async function main() {
   }
   if (command === 'delete') {
     await cmdDelete(rest);
+    return;
+  }
+  if (command === 'photos') {
+    await cmdPhotos(rest);
     return;
   }
   failUsage();
