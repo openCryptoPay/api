@@ -1441,12 +1441,13 @@ describe('admin photo replace', () => {
 
   it('answers 401 before reading a photo body without a known key and a fresh timestamp', async () => {
     const api = build();
-    const large = new Uint8Array(15 * 1_048_576 + 1);
+    const large = new Uint8Array(1_048_576);
     const headers: Array<Record<string, string>> = [
       {},
       { 'OCP-Admin-Key': 'laptop', 'OCP-Admin-Timestamp': String(NOW_SECONDS) },
       { 'OCP-Admin-Key': 'desk' },
       { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': 'soon' },
+      { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': `${String(NOW_SECONDS)}.0` },
       { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS - 61) },
       { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS + 61) },
     ];
@@ -1457,6 +1458,19 @@ describe('admin photo replace', () => {
         body: large,
       });
       await expectUnauthorized(response);
+    }
+  });
+
+  it('answers 413 for an oversized photo body whatever key name it sends', async () => {
+    const api = build();
+    const oversized = new Uint8Array(15 * 1_048_576 + 1);
+    for (const keyName of ['desk', 'laptop']) {
+      const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
+        method: 'PUT',
+        headers: { 'OCP-Admin-Key': keyName, 'OCP-Admin-Timestamp': String(NOW_SECONDS) },
+        body: oversized,
+      });
+      expect(response.status).toBe(413);
     }
   });
 
