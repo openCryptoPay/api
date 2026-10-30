@@ -43,6 +43,8 @@ const PHOTOS_PATH = '/admin/places/photos';
 const ADMIN_WINDOW_SECONDS = 60;
 /** Same timestamp form as `verifyAdminRequest`. */
 const INTEGER = /^-?\d+$/u;
+/** A declared body length. */
+const DECIMAL = /^\d+$/u;
 const FOUR_DIGIT_YEAR = /^\d{4}-/u;
 const PLACE_ACTIVITIES: ReadonlySet<string> = new Set(PLACE_ACTIVITY_VALUES);
 
@@ -224,10 +226,10 @@ function adminReplaceBody(
  * The signature uses the configured host, never the request Host header.
  * The body is read once and then parsed as JSON for PUT and DELETE.
  * Bodies above 64 KiB answer 413 before the signature is checked, except `PUT /places/photos`,
- * which takes the photo body limit of `PUT /map/places/photos`, checked first so an oversized
- * body is 413 whatever key it names. Before a body within that limit is read,
- * `OCP-Admin-Key` must name a configured key and `OCP-Admin-Timestamp` must be an integer
- * within 60 seconds of the clock, otherwise 401.
+ * which takes the photo body limit of `PUT /map/places/photos`. Before its body is read it needs
+ * a decimal Content-Length and no Transfer-Encoding (otherwise 411), a length within the limit
+ * (otherwise 413, whatever key it names), and an `OCP-Admin-Key` naming a configured key with an
+ * `OCP-Admin-Timestamp` integer within 60 seconds of the clock (otherwise 401).
  * GET returns the public place with the internal id as `id` and the public id
  * as `npub`, and adds the caller id, payment methods, created time, last
  * transaction time, and `active`. It does not add the refresh deadline or payment days.
@@ -265,30 +267,28 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     maxSize: MAX_ADMIN_BODY_BYTES,
     onError: (c) => c.json({ error: 'Payload too large' }, 413),
   });
-  const photoBodyLimit = bodyLimit({
-    maxSize: MAX_PHOTO_BODY_BYTES,
-    onError: (c) => c.json({ error: 'Payload too large' }, 413),
-  });
   const isPhotoReplace = (method: string, path: string): boolean =>
     method === 'PUT' && path === PHOTOS_PATH;
-  app.use('*', async (c, next) =>
-    isPhotoReplace(c.req.method, c.req.path) ? photoBodyLimit(c, next) : placeBodyLimit(c, next),
-  );
-
-  // A photo body may be 15 MiB. Only a configured key with a fresh timestamp gets it read.
-  // The size limit runs first, so an oversized body is 413 whatever key name it sends.
+  // A photo body may be 15 MiB, so it is read only after cheap header checks: a declared
+  // length (no chunked body, which bodyLimit would buffer), 413 by that length whatever key it
+  // names, then a configured key with a fresh timestamp. The signature check reads the body.
   app.use('*', async (c, next) => {
     if (!isPhotoReplace(c.req.method, c.req.path)) {
-      await next();
-      return;
+      return placeBodyLimit(c, next);
+    }
+    const declared = c.req.header('Content-Length') ?? '';
+    if (!DECIMAL.test(declared) || c.req.header('Transfer-Encoding') !== undefined) {
+      return c.json({ error: 'Content-Length is required' }, 411);
+    }
+    if (Number(declared) > MAX_PHOTO_BODY_BYTES) {
+      return c.json({ error: 'Payload too large' }, 413);
     }
     const keyName = c.req.header('OCP-Admin-Key');
     const rawTimestamp = c.req.header('OCP-Admin-Timestamp') ?? '';
-    const timestamp = Number(rawTimestamp);
     if (
       !deps.keys.some((key) => key.name === keyName) ||
       !INTEGER.test(rawTimestamp) ||
-      Math.abs(Math.floor(now() / 1000) - timestamp) > ADMIN_WINDOW_SECONDS
+      Math.abs(Math.floor(now() / 1000) - Number(rawTimestamp)) > ADMIN_WINDOW_SECONDS
     ) {
       return c.json({ error: 'Unauthorized' }, 401);
     }

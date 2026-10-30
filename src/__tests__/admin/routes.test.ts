@@ -98,8 +98,10 @@ function bind(
       keyName: overrides?.keyName ?? 'desk',
       ...(overrides?.nonce === undefined ? {} : { nonce: overrides.nonce }),
     });
-    const init: RequestInit = { method, headers: { ...headers } };
     const wire = overrides?.send ?? (body === undefined ? undefined : bytes);
+    const lengthHeader: Record<string, string> =
+      wire === undefined ? {} : { 'Content-Length': String(wire.byteLength) };
+    const init: RequestInit = { method, headers: { ...headers, ...lengthHeader } };
     if (wire !== undefined) {
       init.body = wire;
     }
@@ -1432,16 +1434,8 @@ describe('admin photo replace', () => {
     expect(place.status).toBe(413);
   });
 
-  it('answers 413 for a signed photo body above 15 MiB', async () => {
-    const signed = bind(build());
-    const response = await signed('PUT', PHOTOS, new Uint8Array(15 * 1_048_576 + 1));
-    expect(response.status).toBe(413);
-    expect(await response.json()).toEqual({ error: 'Payload too large' });
-  });
-
   it('answers 401 before reading a photo body without a known key and a fresh timestamp', async () => {
     const api = build();
-    const large = new Uint8Array(1_048_576);
     const headers: Array<Record<string, string>> = [
       {},
       { 'OCP-Admin-Key': 'laptop', 'OCP-Admin-Timestamp': String(NOW_SECONDS) },
@@ -1452,26 +1446,64 @@ describe('admin photo replace', () => {
       { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS + 61) },
     ];
     for (const header of headers) {
+      let pulled = false;
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulled = true;
+          controller.enqueue(new Uint8Array(1_048_576));
+          controller.close();
+        },
+      });
       const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
         method: 'PUT',
-        headers: header,
-        body: large,
-      });
+        headers: { ...header, 'Content-Length': '1048576' },
+        body,
+        duplex: 'half',
+      } as RequestInit);
       await expectUnauthorized(response);
+      expect(pulled).toBe(false);
+    }
+  });
+
+  it('answers 411 for a photo body without a declared length', async () => {
+    const api = build();
+    const fresh = { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS) };
+    for (const headers of [
+      fresh,
+      { ...fresh, 'Content-Length': 'ten' },
+      { ...fresh, 'Content-Length': '10', 'Transfer-Encoding': 'chunked' },
+    ]) {
+      const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
+        method: 'PUT',
+        headers,
+        body: new Uint8Array(10),
+      });
+      expect(response.status).toBe(411);
+      expect(await response.json()).toEqual({ error: 'Content-Length is required' });
     }
   });
 
   it('answers 413 for an oversized photo body whatever key name it sends', async () => {
     const api = build();
-    const oversized = new Uint8Array(15 * 1_048_576 + 1);
     for (const keyName of ['desk', 'laptop']) {
       const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
         method: 'PUT',
-        headers: { 'OCP-Admin-Key': keyName, 'OCP-Admin-Timestamp': String(NOW_SECONDS) },
-        body: oversized,
+        headers: {
+          'OCP-Admin-Key': keyName,
+          'OCP-Admin-Timestamp': String(NOW_SECONDS),
+          'Content-Length': String(15 * 1_048_576 + 1),
+        },
+        body: new Uint8Array(1),
       });
       expect(response.status).toBe(413);
+      expect(await response.json()).toEqual({ error: 'Payload too large' });
     }
+  });
+
+  it('answers 413 for a signed photo body above 15 MiB', async () => {
+    const signed = bind(build());
+    const response = await signed('PUT', PHOTOS, new Uint8Array(15 * 1_048_576 + 1));
+    expect(response.status).toBe(413);
   });
 
   it('keeps 64 KiB for another method or another path ending in /places/photos', async () => {
