@@ -1,0 +1,750 @@
+[
+  {
+    "npub": "npub100eyvtzsdn4k3hard0kktzyznwm9jkcnmr4hahyf3r6q63yg0nfql0t3f3",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJaynbaTvhmkcR3Smjpfhccc8"
+  },
+  {
+    "npub": "npub104ea0eahdnfj2n9paqww0kmax5d9a6dra8u59nqv0rjswknw5gsqdzhwhm",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJt7S6SVr0mkcRWV4zU8NrixQ"
+  },
+  {
+    "npub": "npub1076jy3r890m04een3lpvavl9jyjk856klwgdmsqy7k9rctnazfssnmqn58",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJo0fgR7o8jkcRnpasgBcKTp4"
+  },
+  {
+    "npub": "npub10c5alt0adu76wy28hkwsxdumrt05gg3muyuwavxqfk7993m33ths9h7gjz",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJf47LcwAdm0cRqQKJ-5GKlg8"
+  },
+  {
+    "npub": "npub10rmg76xsak8hmj6keh8c08x5aw98r5w933mqcuf22fdfcdqm6lhs34pxw9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJZaptkCPrhEcR9kHc97Z9K7U"
+  },
+  {
+    "npub": "npub10v46pgc9sps7l0977rcjzcf0a7dmumdtt9770s0a6tayar362n4slwnemh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJp1YSN_XgmkcRE55CNWby3XA"
+  },
+  {
+    "npub": "npub124ha3qnc4fs4tld868phxrqrqpmnt4jghtkp925shftuzygsjruqmhg9ew",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJp5J1OZWZmkcROzT5bI5e6XA"
+  },
+  {
+    "npub": "npub12596jy0fn5pmnygd9kt2a3tsjnck5f59hk2cq2g60dhnex7p5rlsyu6yzj",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJSQ7FarANkEcRT5b4QxDirUM"
+  },
+  {
+    "npub": "npub12a65v3gghekma9sqknqc62x7dxr02grpld7tpv9pfaqpefw97cvqcdfecj",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=46.892921,7.172997"
+  },
+  {
+    "npub": "npub12hqw4c2yt96f2zmyp7h0c4rvq43jnrwrj7vzdszts2z6ecqrhpgss27ua8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620683,120.957941"
+  },
+  {
+    "npub": "npub12sx0t5ht6j66wzfcpj2n0vyvrxwuva9p0g4ep3vhe8q9e7ydqunqpvdmfa",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.19804,7.390342"
+  },
+  {
+    "npub": "npub12u3pvyzv99uxalh4yvyl2lcvhx6ze78lw8yqzrndda7k0xuynj6qtxcafz",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJVVVVVanhj0cRadOvgzWTRZ0"
+  },
+  {
+    "npub": "npub13fcajs28dspahzs05g4p6x9500qd50wv04qvh3xh46tavd4y5cqqsyjk2y",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=46.751389,7.569378"
+  },
+  {
+    "npub": "npub13xha7l7999s8gzfxyhclmzfgwyarc700zz4yp4hxwnwkpv2zzppsveejh0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ9Z9UC3jMhEcRdYJOxZmMhyI"
+  },
+  {
+    "npub": "npub13ztj3af69vy584zvm7r7egmak33y7cytkv8cnep3cgy3w9aw36uqrug3d4",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJncl_uWZIhUcR_2afy5Ki8TA"
+  },
+  {
+    "npub": "npub140mpt3m6z6snk8n25hkkjehvzy93xytxlan79nu43460gnr3nn2qgn03uy",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.519802,7.553023"
+  },
+  {
+    "npub": "npub148jmc93kq9gamp9hrm4w0845cqpq4ch492y7mj4sw8nf8ftzecksff78eu",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.279285,8.454231"
+  },
+  {
+    "npub": "npub14hh79t5vp22r0p6rpq2rakrlhldggwfsc343fhan69v52hyhjz4qrtjuan",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.17054,7.888272"
+  },
+  {
+    "npub": "npub14qse0zra44m8lg2puq37zrzzm0jqgupxm53rurvhahffe8uyd7wsjqext2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ-dKD-APNhEcRSIRrAODgDAQ"
+  },
+  {
+    "npub": "npub14r7de6d303lck4fauy4kwc7gyhs9xvnq2y6dllq58d2peggxhqps7gxfpa",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJWZVhPmmxmkcRF2Zc267JJmA"
+  },
+  {
+    "npub": "npub14tmtzgkq2elpjup2lm0300hn8rxw84l0sr3ne6asfnq3f4vm029sdesegp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ78j4BOOUhEcRxrySj4w7buU"
+  },
+  {
+    "npub": "npub14wxzd4m8x5vsmk5zxtuh6jqtphu2462nzkv22k0j337kvhymrzus4dfa2p",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJibyi1B9OhUcRgDzNGuXmn7I"
+  },
+  {
+    "npub": "npub157schl3ence5e9q3u8uwrldhgdq287zw47geeylhprrzavlskqnq3gzzec",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJnZqW3X4hm0cRW0YemMJutLk"
+  },
+  {
+    "npub": "npub15tvr4gwncj85gpt4lw73m49d5c3fhln7uu62jzm7vq2fwa0ardhsljygl8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-1.957658,37.840978"
+  },
+  {
+    "npub": "npub15v52qty2cxjxa9uzv3qwyjk7hwc330h9a6hncnac6rwasj2mlluqwz6c6s",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJoVpnPIIhjkcR7i4E_uwjRv0"
+  },
+  {
+    "npub": "npub169qdvt589d7kr8lcyjf427h248z3a3wf24rcwjdznhpxqfa6q6lq0e7zv2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJOSxCes7SmkcRZ6D7VBiFUjg"
+  },
+  {
+    "npub": "npub16eke7rvd660sttdnvjgl626p8t0ty3xmxaj0jty4ymxwnwnjjczq93uz9k",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJteNZUIT8j0cR7IvG6udL0-w"
+  },
+  {
+    "npub": "npub16f83l800x6mchh3zeekj7wwlz5ydqagcnamudkanf5u4d5uudphqzjsmge",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ7b4qDbnjj0cR-NfAseUzmUc"
+  },
+  {
+    "npub": "npub16ql54z0u7vdxv9rvc8ftugyw55xrl685k35a08xt0xvwrh5qz3gqfw8njp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ7XttVSq4kUcR4hmSmm1EtXQ"
+  },
+  {
+    "npub": "npub16rymef3xj8wtuzjygwcnjdaff6zuc88tncfnwxp7kd6uhxpyxkqsr322sl",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620756,120.957925"
+  },
+  {
+    "npub": "npub16us6qa80zcmrjsdfsfnhgnku7uhqcw9fgjmmuck8twe32empc2wqpg8v5f",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJd_F5dsM1kEcRDGE6wpoXbk0"
+  },
+  {
+    "npub": "npub16v9ejlh5j8t5yfdt4rp30ggmza9nd7nff6cvtlc296yxykmnr3qsrts2gf",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=46.711201,7.964155"
+  },
+  {
+    "npub": "npub16w74p00930p6f8dmgfttqa5hw7prfkajl25j88k6s30d4zqwu4aqnapyej",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJgWMDBcxMjkcRs0xfiBocsH0"
+  },
+  {
+    "npub": "npub172c5y7l9kypllx2zt7al9r5kn0nx5w7ksmkdeuj6g0y2jwre84lsy9jjsc",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJC-ZXtPyxmkcR5ad4898sEno"
+  },
+  {
+    "npub": "npub17acy6ap20qt0fmwfxcmf2cm5ch69a267e7k63mdm9rmp9aufnacs6nqaf2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJLxjc_IS3mkcRadDNYf_209I"
+  },
+  {
+    "npub": "npub17cyhdlvp6twp2rgx5ceg29ls0vy5f7exnywpytrxl266u5kvj7hs2tqhmr",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJz3BSTYKVhEcRaMPS3W4Fh0c"
+  },
+  {
+    "npub": "npub17pjngjhytljfn985m80s4d3nhx0famr5sfje240jh3yafnx7mpfsrm8laa",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJSxxYmbugmkcRgGXMY2ke_rc"
+  },
+  {
+    "npub": "npub17pkutgqtnq9gmcw3ytfczvh7kz598405mz8tjsx5vjslsz28239qh7x9nf",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJU2Tf0g73j0cRClAVBmVQsWo"
+  },
+  {
+    "npub": "npub17sh9jwnxjylua237sasnhzcmz2l4rvzhc6xflufffk5ejs3nrjwqjuxt5q",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ4a8YDZPamkcR_LAdZKH0bZc"
+  },
+  {
+    "npub": "npub17sya368v5z46xfcgx9jgc0pcdjzh464ede2ngrm0d5u7hg6sxmhs5yuq20",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJoQ0aJebbj0cR_PZRdDV6-iI"
+  },
+  {
+    "npub": "npub17vr0zu26mr4whvf32znr92j47m3ycsz6xljm2zcwttv5nfmyu6csjecwrw",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJH4fMT6zShEcRSc7wYxzzql4"
+  },
+  {
+    "npub": "npub184tfx00yl80500zpp0jgwk8pkcsrraxju7lt7kgck507hg43t4usm323x7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJdWc8ZFHSmkcRJxtfYWaEteM"
+  },
+  {
+    "npub": "npub18a8eupn42439gtfd6n3emsk00nttdd6t66ywwce8lwl3fd5ae28snt0xl5",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJR3dYRSptkEcRg1AqU6l3A0I"
+  },
+  {
+    "npub": "npub18ae8kfg9as02f8p3vttdpdct24h7f64r7pcmcujnkvvn0zuwvcyqr8yfjm",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJSaQUwBdUhUcRBMq-Z9t3mpY"
+  },
+  {
+    "npub": "npub18f93tge7cef6n0447cerwm8khegavlcxar7gerypq26h77gajxjq5mrwj7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJjZ-EYLIpjkcRX1Ip1uzuCmc"
+  },
+  {
+    "npub": "npub18q54rkpwt7v6l2ja9u9a0qmy5zrkf446u2c5a6tq6ac3ju30zndq2jzkhh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJUf_G91ojkEcRy9_wZlTFKUM"
+  },
+  {
+    "npub": "npub18xwgzvc6aeugrm4924e65c0cu0qevvg4c2u4rgq07erzwdljwefqg82u2l",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJF8saEAMJkEcRypNFI8jXOXc"
+  },
+  {
+    "npub": "npub19pkzayn6206xkxeagv0lnpf3nh6gs4rryzeur4a66sx85r4ru8usec8hwh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJlZzlLcvhmkcRsCg3wyLlf7I"
+  },
+  {
+    "npub": "npub19t042w9danwlvldr9mnylgnnmhfzh57t3rslxy72f95kntxl7kxsn0z2e8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJkUr0a3cfm0cRCgM2fUSO0Y0"
+  },
+  {
+    "npub": "npub19xle20l9fxrzamtxglnkfu7q0r9hnsrn36xwkf3ckfzjr646apuspctlzv",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJM4GoLkjyj0cR3lR01B5kXBU"
+  },
+  {
+    "npub": "npub1axd70rq5dewc87pth0eptpxuxp2h692gnl08jccrdl3th7dyz2rqn0x6jy",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsbQzS_MMkEcRUydSS4c9xwA"
+  },
+  {
+    "npub": "npub1ay097s0dnqs6jtwkx8wsj47uh3x0xhku8skx4tgsxtxzrf0w7ktqeuth2w",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.714737,8.517715"
+  },
+  {
+    "npub": "npub1cdsnumgp3aa4ux68w7quzv7py6juk96st866gd8wmhkqnjzh3xesps9w0r",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJo590m6UZm0cR47PQaPES2eM"
+  },
+  {
+    "npub": "npub1cj067w7x33east5dhgsqnp2w5d0zz08acse6suqg0a2g5l9rn7wq7dry7x",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ9fLjFKB_kEcRErgaGZg6tB0"
+  },
+  {
+    "npub": "npub1ckpu8lf7c7aklgygucjakk2vufsxkvmdgp5kffs4yp9n3jnj5r2qyeuxat",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJG4unF24im0cRql0JZIzgA8s"
+  },
+  {
+    "npub": "npub1cqjvsh5sr07703y30e4k85z4qqtaxzn3wpuh0ens3anxa0sru4hqf9yj42",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJLRsaH6umhEcRSt5Utpv0ZoU"
+  },
+  {
+    "npub": "npub1d390gvgw6p7p8kjwygkst83m0k7crtvdyzrfgc5x027srm8vfp0st6l3un",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsVKsLnHVmkcRVeOSarbNOoA"
+  },
+  {
+    "npub": "npub1dd0n4anq4dzamsajt23m20fgc347gds0seze0g0xlxr8az570hjqs7m04l",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJPYPcg-ULkEcR3fwzpotDONM"
+  },
+  {
+    "npub": "npub1ddnkfpex8ytxpsvk86knmwyfqmh7sm258sstslxf06j8v222xejq0q5dfh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJCZHryLD7j0cRi9fh55n1cvQ"
+  },
+  {
+    "npub": "npub1ddzccj5t2n4udwzxmf5yx4rzs0n5kq7gvlskhxc384yv0hdxrdwqsfk056",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.196423,7.967965"
+  },
+  {
+    "npub": "npub1djnr8w6nv0dxv00f6whzj0wtzcgmdlvtu3vrtzx96faqyukhe3zs26uywa",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJHflkUkQTkEcRBb648NP7hZY"
+  },
+  {
+    "npub": "npub1ds2eya9wu00wn6xpuclqg4t900yd6hrzkxdatlrckqdyfx402mrqu9dn8k",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJQZ10eIwbm0cRysqSC6cg9aw"
+  },
+  {
+    "npub": "npub1dv4udxmc5n5g2y6ljwcy4t89ap2pu22k9z9f2t209uz3xk08nm2s9m24en",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJmejOubO1hEcRmEEaI394uJE"
+  },
+  {
+    "npub": "npub1dz48twt5t24yn0pd0pww2xwjj8vfqkfkuz57qlu6fej295qsa00q4fk5wx",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJJS62HuPrmkcRsuLAmO-Ircs"
+  },
+  {
+    "npub": "npub1e7fn27fzg69xuj0vtym5kujjutykvx9793ju7w3ttk0met5s0tlsxlfxjn",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJDeakRFXjmkcRUWMlBPZGGl0"
+  },
+  {
+    "npub": "npub1e89y20hf8d56pc8axnqv2amjqs7xuugrhj2ud2djvy2m877eucxs5tvjf4",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ1x1BqVsukEcRVIFo-WUbU6g"
+  },
+  {
+    "npub": "npub1ejdlqlgf37m9hjxqmjl5w4glclgnsm7nw4yr884ua3w2t373gajq6nztmz",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJN0eIbanDmkcRrYh1WIACVmg"
+  },
+  {
+    "npub": "npub1eqndm043ka0efppf9stjtevslr5vddayplgnsa7agr590f7x8tuqzg8ncy",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsXBMUfLJmkcR9n6MEnpbxFA"
+  },
+  {
+    "npub": "npub1f2e350kza7az52k5kgmf4khf9sh8csv7s9k3z2dypztdd79rdjuqwqgnp2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJuxtD7TPhmkcRDEjvIJ5cYeI"
+  },
+  {
+    "npub": "npub1f2ka6vjlx9s4y3sr0xddlpwgaldesrdanvp4x5juksnm8z7nxuvsmzlkqs",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620743,120.957272"
+  },
+  {
+    "npub": "npub1fc5vpq232l86lge7gqffgqa807cqn0jfnvadzutdh5fndzkxd5cq2mga48",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJvZrzLwuZmkcR7AcCHNmhdS0"
+  },
+  {
+    "npub": "npub1fez854nm3ns8zz2qadldl709q9x3s5s2hp5tg9er8s797zy34p0st3egfv",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsVz18fOfmkcRlWEnYU2VWY0"
+  },
+  {
+    "npub": "npub1fjxgnsgl58qhvvq6gat88hqk8dyjwfy490nlcymehces02r30f8swp3g8t",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJV2kfW34KkEcRxMBrKw77TPs"
+  },
+  {
+    "npub": "npub1fn55wa303r9kjy5xcyyqen2cugnvrqde4y9l4q8aa3hywtx0h2qsjzl5wp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJqTCm7osthEcRSZngHqWV3pg"
+  },
+  {
+    "npub": "npub1g0a2e6vtskr4280gtmwurv4vy5nuafexlzp05at3dls968jnflcqwdywf9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.225861,8.817266"
+  },
+  {
+    "npub": "npub1g4uqgerjx5nfaevc2l48vwn5zee0psvk59jhy9xl22ksl2p39sysdcrm3l",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJGTvDRAndj0cRDyXB657c6E4"
+  },
+  {
+    "npub": "npub1gg7pxfhlgln79lzwl7zy0tpcqpnlcqvdgm3pw3t6efue02juqkkqus3jqh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJc8Tb_9-BmkcRU0dgSnMvZ3A"
+  },
+  {
+    "npub": "npub1ggs9w4ldmy59vsy34f05ghfxc4uluhcw5yhflc6a0mertx0ehl6sc6yqd9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJJxlSgCkAkEcRXUdq4iTUNZk"
+  },
+  {
+    "npub": "npub1gq5qu5jyvu8fzc09l2z6ec2eetj7u9g43963lhcxa9xa3w7a4rrqywsx8h",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJn3xdCZ_pmkcRaU4bEkq8bos"
+  },
+  {
+    "npub": "npub1h3zazuz5xr0kzwrwla7nt6qrwe3kke3qv0ccws2q58he4hg0kupqfqmcrm",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJL0pB-KPLhEcR11gxyIvFPmo"
+  },
+  {
+    "npub": "npub1h4ed4dky2h8stj8v7shsmfluq80untueyltudehzrnv2dq9pr5aql25hs8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJZzLReDr3mkcRf5IWGqRRyk8"
+  },
+  {
+    "npub": "npub1h5qleeu303a7rkstphkqrxpqjurgaz4j7gvanjfvdva9vazgn2aq52ydk3",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJiTR60PHTmkcR3Ll_bp9wAUM"
+  },
+  {
+    "npub": "npub1hj9encu2e4hcfd7gdvl3q308n9t7aedwu7jaqgsr8wqj42vl0zfsamdlqh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJkWN-Sycdm0cRSC9oaSC-c3M"
+  },
+  {
+    "npub": "npub1hmurwqdw8uusreymyaqryxauk67xskmddlkk9jgm9upxydwcrpvs9hxtf8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJeaf1TjqZmkcR5FfhQAgvLqk"
+  },
+  {
+    "npub": "npub1hx2r4fw36x3hrpfwra0avshvqle3f25kckgsurvyvxzllzghvxeqvsn59k",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.62081,120.957576"
+  },
+  {
+    "npub": "npub1j87fcznvc7j6573n2fqu44zkm3n4scyx8e3pdvpdwmfchqwss0eqgjs4yl",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJPZasDPeqmkcR8-VKK3J0-1o"
+  },
+  {
+    "npub": "npub1j9j0ntyw9r4stkxp7rs63y8z7s7kd27gru7xn4pkxtrzl40svs8qm0jqyx",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.621307,120.957695"
+  },
+  {
+    "npub": "npub1jcrcqlv32q709f6tmwjycwn4yh7y4yw5exy4e7zv2uxglxcjzv8qx542nd",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJq1qVxcyZB0ERaRe-PxfyzYE"
+  },
+  {
+    "npub": "npub1jg2vu0ck5rtn3lpanm55yydlh8rk78098fffmx4k7dych5u2tj3sh5hvax",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ2W0xOYISkEcRO1lvEVpHP2s"
+  },
+  {
+    "npub": "npub1jn2wjn8ut0572z7rck028vctpv6zl6pgjt0wsv39f4e3hsq023rsqvfqft",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJJc3UKcahmkcRwjCGcQV3GGs"
+  },
+  {
+    "npub": "npub1jq63cy27wj69suyyttzaqhuexw3qw7786ph0tupk8gttyl5wdhuqpxx9lv",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJa9Siy0eymkcRUGMfNzcoZVg"
+  },
+  {
+    "npub": "npub1jqlxun3ns3tzjdet6p9j0d5ncg9nw697t26yz0pggg3yhknfg47qgu5ren",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ4URWvBgMkEcRkBRAG77pLIE"
+  },
+  {
+    "npub": "npub1jwkjfysm0245ydq8pmnxjw4nyt7l7ffs7p704eqz40k5gldeam9s8qn6zh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620992,120.958539"
+  },
+  {
+    "npub": "npub1k2arn3gf5a5s0wyul3lm5jj2svv88gfagcjfg0smpk8x4k5xgf7s6ua9up",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620683,120.958288"
+  },
+  {
+    "npub": "npub1k3hk3la73jh6xxek9elv8gnu9g73cfqmq2r6vlcnt904fdkre4eqznj8gu",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJi0eBZ_y2mkcRxc-2pEIJu6Q"
+  },
+  {
+    "npub": "npub1k3s77zru8hgquptz7rjtcptv6r33543ywar7rvtsmhcu9u9lsguqaausxx",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620722,120.957553"
+  },
+  {
+    "npub": "npub1k4zup8xw39ejjpd83uyhxjxgrwn649jrgagypqhh5g99etazmqhs8a8nek",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ1RfucacthUcRG49hAvVZZhE"
+  },
+  {
+    "npub": "npub1khhsfkgx53qph40vtcfaz3llkg76vmxjeydg92kmqwf83lxujqystfwcys",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.385342,8.54217"
+  },
+  {
+    "npub": "npub1klx03csulxeaqvzyj7nu2pnfxlrn8tcqc8hs6kfs9gdfvy3lpadqhnnm2u",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsShOqtYYm0cRAjBtbbwCv1Y"
+  },
+  {
+    "npub": "npub1kp7r4nguah73gwazkfkq8ddvnsvsrmgq9h5qxjllxf33xuzezzfqhfuau0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJB8uM0J7gj0cREgwjeReDt9k"
+  },
+  {
+    "npub": "npub1kuejuvy33lzyngsdapfuw87jq47jkgarevxdaje96smgsrjnedgsq9pz2c",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.493889,9.344683"
+  },
+  {
+    "npub": "npub1kzspnp8j9qqaedsdetzlaq95sl94y2ynctdl2pay8v2axt474y3qy7hzj7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620718,120.957662"
+  },
+  {
+    "npub": "npub1l3dptc742xm2lty80ac7yrkhvvee7w7xqr3m88y5vtqdt5vvfqdsncagfq",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620515,120.957789"
+  },
+  {
+    "npub": "npub1l5l28wswfql2w3vv9gnju7xrrvv5vf4lp0t9addw0vsw8x8vz3yqn5q5vp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ1Q2lrNvvmkcRIHexhnt2bIw"
+  },
+  {
+    "npub": "npub1l6xgtecct78mj4nwnr35rt8ycchy4f7pu858a2v0uvjlwrxtsnyqjxyfeu",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJY3SEmHw7kEcRKZ0JVb8YiYA"
+  },
+  {
+    "npub": "npub1lmq36gkkwz027tc2nhe0cu0r7rxvwesw7g2fsc2g8sp8r3hafypqkmksp8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJCTdmcr2mhEcRi0qJ7Aj-_Do"
+  },
+  {
+    "npub": "npub1lmz9tc8vvh5c0k3avd9z4khsn4dvh0wcas0arwmk88p49up7wydsqc9n5e",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.407585,8.532389"
+  },
+  {
+    "npub": "npub1m45slvdphryddj8xc0das3ha6hujprrdrkxhz0du7uj7jp2e6wjsar5na0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.117264,7.899035"
+  },
+  {
+    "npub": "npub1memmcf8ywsnvh86eyskhw2rp9uu4xsuwcxpm52xnala5j3ux6kyqj5pfnm",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-2.523991,38.029153"
+  },
+  {
+    "npub": "npub1mytl70u7592zpuv3c7d6gykadnvh46wcl6fxylzu4w3vc5yyn08sy8md2f",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJH_4PRxjehEcRKSwHFtEdPR4"
+  },
+  {
+    "npub": "npub1n30mzsr9uyws06n4eqkuy8wfucgj7q6d2c2tz724m4zgmp9nsxpsrdfyum",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJH3uPQP33j0cRLlsUT2Mi3v0"
+  },
+  {
+    "npub": "npub1n9gyp6ckp8kfrpvz7gfglcvsev2yn3kpun0uqmjqrpcyg6l5wjlswu628g",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ3QGMF13NmkcRIU2ZKu4GKuc"
+  },
+  {
+    "npub": "npub1njvw9mstc42rejrsjguqhl5067drj7amp62azaq88gc55hcvw3fs0mruqt",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJAVeve_MIkEcRNMxmqY7Oeqg"
+  },
+  {
+    "npub": "npub1nkl4dzcygka6cf62kqxyercg533ntmpznpekeqaemkxv6e3320yssl7m2p",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJpS9FRjjZj0cR-fl6zRT6Res"
+  },
+  {
+    "npub": "npub1nqf87m7s48aeknhdjpsjfgt966eyc394e6y66qz8szzf5s5k090q9wm3ns",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJDZMk0322mkcR7QjTEiXCv1E"
+  },
+  {
+    "npub": "npub1p0zusztw0g2w7fmklwan4m4ndp2f77f6ahgsths0eh8cvqztuv0suy62zz",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJS1Nz66kZm0cRtuiDwje4_LE"
+  },
+  {
+    "npub": "npub1p278fe5ak8l2d7tguc7j7m54lp0sg5c5w9hvjdq2tvsznvzp070sxpzj5r",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJByNz1bOgmkcRfF5v1v-wqvA"
+  },
+  {
+    "npub": "npub1p92udjhl3f82v4gj08lvnr5gvennrjuewmuntxm5etv2njw05p2s49n5q2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJwc3iWeEHkEcRMXI-ZNZOjaA"
+  },
+  {
+    "npub": "npub1p9kmwd639pa9q2lkvvzcfdca96l7cd5u88cehe79mf0zskcmsaqq7s37yq",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJHahFn15ykEcREaVzk16t6Sw"
+  },
+  {
+    "npub": "npub1pffu6f88q3xqrwdagljnl5ql3dp7ypwjuext0zdxswqrnzvls3csx079z4",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJre2H7jsRhUcRc25W9ISep_Q"
+  },
+  {
+    "npub": "npub1pj88lfy3ka6d4cvlghvxayprss45k5cfcjf8dxxcvx20zhk7s2sqts34lp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.475357,9.149096"
+  },
+  {
+    "npub": "npub1pjh6zf6kxsrpkq9cp9nugsmsxhwltxa5r7ux0acy2he6sty6w0as9a5f50",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJkwaYUh_gj0cRn1KFO9wcQdg"
+  },
+  {
+    "npub": "npub1pql3m5w76zmdetg05z86x3502dq6rmtlnm8pqsvp4th664cy320qu53wn9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJz5PcYciomkcROEc89Un7rKc"
+  },
+  {
+    "npub": "npub1pr7h9xe00uxtnvpa36vk6tux3qnzzvwcaywwwxze5z80fn2pm9xqr6h8z7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJjRPzD9ILkEcRJ1OiJpXlD48"
+  },
+  {
+    "npub": "npub1ps8p2fkga2rskdegk4932tjk4zwdnm8h7sjkvsqec02kzcx23z0qdv89fc",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620698,120.957953"
+  },
+  {
+    "npub": "npub1q3gvfy2vkjck6vn3v23hfdzn0e5ewtmqu6vz8ncue726pha9fh9qrxu8ka",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620668,120.957795"
+  },
+  {
+    "npub": "npub1q6f55gmryj84pu6djexnw5yc7pmd44x5r0vs42t962t9srzma5qsm63jgg",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJeZ4QgYcZm0cRm1TwSD11zig"
+  },
+  {
+    "npub": "npub1qc90y0qvdxcm6xmyrlkca3snasjg3ptuhz0fzhneda5h6cp0kdlslnf7a8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ2TWFZ6kMkEcR2y1Kg6PeByk"
+  },
+  {
+    "npub": "npub1qg8mndnuxtn8q2j70v5ahat9pns2gqzr8k4ddr246czvkrr9vn0s5ufeuf",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJMSevK5kWm0cRkP9m-TnJ0Uc"
+  },
+  {
+    "npub": "npub1ql9fej3n6fwjxg65jvua0rny87n552x2k4h9avnmxxvrad7q4gysv2f404",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ1zIv9tGUmkcRAzuznQ7VrAQ"
+  },
+  {
+    "npub": "npub1qn9t6ws9tjazellrfwtdas9hqx63jys0t6juzl743xwmu4xergeseaserv",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJMxnW77YskEcRqcsUo_fzBp4"
+  },
+  {
+    "npub": "npub1qq3zwp5qs5dzx7dh7u6ggslr7q0g76k5z2npxw5r4ev46dctgt6spp7f47",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ9VAoToRDhUcRcCHERMPdTVs"
+  },
+  {
+    "npub": "npub1qrp6pntszpqdmdfjqpcx4qy6smnmplzxpudrzz79hjzcexv6y59stc9cga",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620756,120.958281"
+  },
+  {
+    "npub": "npub1qs6emqj9aaxxq9va80qsp5qdnjmw53zwjnfeadvj93py5lh0dvpszmsctz",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJE3cxvWQvkEcRcL2jBLMpWA0"
+  },
+  {
+    "npub": "npub1qs8s0vfd7ewwplq26cnem8y5f7qxles9yrmltshahzjj3923evkqexsnv9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.612423,8.540049"
+  },
+  {
+    "npub": "npub1r0w726r47r4j2k9j7af5vfmavay75q7qs4dl5qvv77wmhk2n9s8qt6dq8l",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJjdRXmgUWkEcRMe4gYZhT1HE"
+  },
+  {
+    "npub": "npub1r2x36pprtf3vwa545daade9ynr66w4ppms90qda0j5j5hstlxt9snrack6",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJwRJTZOnOmkcRCAEVrXDrKI4"
+  },
+  {
+    "npub": "npub1rc0qprs7w97wsa5kge4xqvudcn2a9kywnpusymnmenqaz6twjt4slrywsu",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJQV4eObIjjkcRQe5UxbeFwFA"
+  },
+  {
+    "npub": "npub1rcd4j5lpjum5upmjhcv3z504wjesllthvvcg9jhf58w39nvduggq43ntkg",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJFSiWs8Aom0cRMwiJs-85Dks"
+  },
+  {
+    "npub": "npub1rfpc5ylvg98q0qtfx6yufpy99etr9v0qj7p6k95cugnupn4669usgyx4qr",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.475784,9.186507"
+  },
+  {
+    "npub": "npub1rkqv9ap50tkpcjfqs7pdf7wr2t58elfrfnj640x9myvhuz53e4gsz6g9xk",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ_4IrUOUVkEcRenhiRvwtQ6M"
+  },
+  {
+    "npub": "npub1rtqgpcxt7mv5wkfr7w6jrh860s5ekn3u05lrk0hdvvccyc3fj6uqc5x7yt",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620783,120.95758"
+  },
+  {
+    "npub": "npub1rulg8tkm0rgumc0guqj8pp480t0c0k9580xsd7d3l6mdh2uwx2fstqqsh9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJrcRQRsqRhEcRYb5w3BIz2_4"
+  },
+  {
+    "npub": "npub1s29280mahquywfevnu0hdamgl3ylxevpuh8ahfd8a33hux976h6qf829cc",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJUfc9YhKhmkcRoJSvsvxspwY"
+  },
+  {
+    "npub": "npub1s3mqwd5shzcxklmrqfhj8yvvwskwnvcq39dwg5r6h0rxaq68ddrsk8gzs6",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJSdpvmPQKkEcRVBkh0ZlVz2U"
+  },
+  {
+    "npub": "npub1sfpyh02q3mqfxx7ujgtrzxpv5lldgvfhyvnc59q9a5d9q49hs9vqxe2uvg",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJNw-cD4cqm0cRygNijVNyBNU"
+  },
+  {
+    "npub": "npub1sz593lgsf5c2hngg9vcrtcrlkskhf4m37y9dj058sthdwxq0wtrscn6kg8",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJmeh9KAW5kUcReyFiP6xUWi0"
+  },
+  {
+    "npub": "npub1sz8xxrwfnsuqu7860jmk30jwyflc6x8935t0nds27zm6ee7cmuuqncpzjd",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJXalUp1kAkEcRbRvDvMJ3De0"
+  },
+  {
+    "npub": "npub1t3au5hp9yrpxfmz7j9n0yyh2eu803zc8ck5duzmr334lfy6ra5zqvg9pc0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJQ8-I1EylmkcRTEr-EPmDIqo"
+  },
+  {
+    "npub": "npub1t5ezldxw3nw4kyeyd83wd6sjr52px3kfx5zs85534qjvgft28ufsmkv603",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620735,120.957702"
+  },
+  {
+    "npub": "npub1tgw854h9k2v8cxcy47v8cx8rtamadu5vfgrcmcdaflu9ugsa099slgskjh",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ-_C2_x_gmkcRNDBXIGkZovQ"
+  },
+  {
+    "npub": "npub1ttathgs7j9vkkx20x75n3u27rjjuxxszmakyn2l8cw7jrfpe5thsnxu6hd",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsSI0uqo5jkcRHoNmRo_-I7M"
+  },
+  {
+    "npub": "npub1u7nt3az0l7fg7kyh7mump4y54hyswcu08pcevzcjszx069lpd7vsqaa8u4",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJLYXoY2ITkEcRNiOm3xi3G58"
+  },
+  {
+    "npub": "npub1u7pw4x3tgfrp7ehtcdg2w4eyvqfd8p9qng9m2ka6gut636vaytmqprg6ct",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJAbE5orgMkEcRfMoPGyXdj54"
+  },
+  {
+    "npub": "npub1us5jpr2tvxeelcx6l4l6mycuv9hwyv3rn7lyevx0kjphh8q28c3qahh9m7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJm13Ok9yjmkcRmt0MljVsmok"
+  },
+  {
+    "npub": "npub1uv5unlxd8mr3zjlag0ja3f0480nq9k8v4zsvtkvstmd5nsmk557qazkw02",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJvR_Ik1nLkUcR-zlKtBno6cc"
+  },
+  {
+    "npub": "npub1uwattq4v2vq0ps4laze2gh4mt38x6xl8drjmdqt3svpvuj85jknsyfl2cx",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJc9wCzaX7j0cRzvoZYmPJ050"
+  },
+  {
+    "npub": "npub1uxevzgxpd6ew7q7y83fpqmt2rlh9hdehk8a7khh9qz5q0284aehs77dlrk",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ00Ot36wpjkcR6CZFBEMYVlo"
+  },
+  {
+    "npub": "npub1v38qjn5597e0khn9hsu5r055u6hjj038sqzpzrn5smp33tx55rksttlmrk",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=46.995258,7.284959"
+  },
+  {
+    "npub": "npub1v4fda7jeprjtyhhgjjpu4apr8c043asmk9jf0tw5t7qhh8yrnv9quw4l6u",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.521729,9.199523"
+  },
+  {
+    "npub": "npub1vnwnny8swx8ygygxaxrlc2g2n4gkj5mde7xvu7xjy6j04qvch2rq53m2ps",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJg_siWFB_kEcRpPdX2f0dchU"
+  },
+  {
+    "npub": "npub1vsa8j44lpxsejw23nafqpwsk4zzglrqd425evtf6edcz7p62eslsujjue5",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ3QhEvhu9mkcRzEpRv7vbrwc"
+  },
+  {
+    "npub": "npub1vt0m2umfpzunmathpdv0n74dnxmx59euhu9m2zs6kzt5yxw0434qlrekt3",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJzWPkc9K_hEcRqE016hTJhRw"
+  },
+  {
+    "npub": "npub1vuz8m0wu94rd3utuqn97pz9eqr8y9ew6m7u8kqf0mz8md8sj9twqnney5a",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620755,120.958461"
+  },
+  {
+    "npub": "npub1vwzm64vk8dwyt9m9s8az7ea7ssaehc22c7frrf24vfrj40m3v5dqvzx0gp",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620754,120.957236"
+  },
+  {
+    "npub": "npub1w25l0shw4s6da9eef8ep350e2kd9kh8z4qctp3lf72vnalu76s3qtlynwl",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJaaUZ2iremkcRKb3fhRWOQug"
+  },
+  {
+    "npub": "npub1w75lhhua3jdrxglt234gepd7wd6fgytpxgprelavdw9yyttfw9dq5lqetk",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJsxOxaCmAmkcRTOMDCVbFo9g"
+  },
+  {
+    "npub": "npub1wc85ts92wjavfunkfxr5rzykpyl3hw2u8d4z3hlqtdsrjuzf0zvqkwwcvn",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJL4TIsSbmmkcRwloUmrd8J40"
+  },
+  {
+    "npub": "npub1wyg47ayl2rky9tn50jvxq7vf88p8q2trsthftnupc42uf3lg443s7v5m37",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJYySwfgkUjkcRkEJ1ekpEGtk"
+  },
+  {
+    "npub": "npub1x8rxkm5s9gs0enwgd4nyvtasqzepa7slvqzsf0nazuayjfks2clsh0j3e7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=46.749062,9.100597"
+  },
+  {
+    "npub": "npub1xatcpg3tqkn5ca0kfg6agz3jh52dnre7qre4lqtjlea3cc52qk2sext9j9",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJrxrW8hUrkEcRL3AAgXHKr-c"
+  },
+  {
+    "npub": "npub1xcqazzdsny477zqjpjs0jp60rrmarel88tnyguwqzw7yju7enz5s2gs47w",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620311,120.959626"
+  },
+  {
+    "npub": "npub1xjuh0etrm9k5jh9whzj44j2q2k64fvgejedmxfgvle4tvjtjztyqan53vs",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ6yHBLd0Xm0cR17RtxLfkfDM"
+  },
+  {
+    "npub": "npub1xkv96hzrzj7vauu0rdzqhj2agz8ldtjh5hdpl8t85u7s4v6kkdsqnedef2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJywaBUBBrkEcRgI0HJjEUbM8"
+  },
+  {
+    "npub": "npub1y2edvmq2pgkx5elck84kuecwp8qfq00xm9j4nzcve6ktptsh40gqda3c4f",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ72V2fa1ykEcR3lC9IV0t-RM"
+  },
+  {
+    "npub": "npub1yanpg909d28u4y6cqfqc9v6ms8cz2ynl8z6xf04p4ph9n99vzdvs20k7u7",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJy90vI6ygmkcRvGcuE-1MqQ4"
+  },
+  {
+    "npub": "npub1yextmv296j4hq5umc2qlr85mvr2v0vvvhgm0dvlx94qys7hv5jzs325mlt",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJy0PbsSOnhEcRdk0PJhDP0Zs"
+  },
+  {
+    "npub": "npub1yf6ht56wpkej2grg26uwsvylue6anxnglwuzzpumaezgge72tgssfjv5ry",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=47.193184,8.853158"
+  },
+  {
+    "npub": "npub1yh7y3nndky5lrzdjfqewv4dgnnu0thye03tw5l5de8s8vrarjlsq68xvl0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=14.620787,120.958209"
+  },
+  {
+    "npub": "npub1yyd20wq6mpa4l3masvmkhytazg29hus4er6emdx7tf2h8f7mxkxq6ycvvn",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJEY1U7I90kEcRGKcnR46dtg4"
+  },
+  {
+    "npub": "npub1yym4c7ds0jyrgr9jvrjfltyhy2q6fms2exm79nypeep76hwyn7cqlvprkm",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJYfYDtfefmkcRP2WE2f8fIDs"
+  },
+  {
+    "npub": "npub1z2sw4jd5885lch76kafyazf0d2sa7we9mmnsc70qajd02axe8fes65lmeq",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJEVPRjeeyj0cRVpM397oKnuo"
+  },
+  {
+    "npub": "npub1z2ujplv8qe4q59h8rv0wmeqms5ugn9hch202l8se7t7dt0t3d6nq098ud2",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ9e14GghDjkcRZhUSdiH1OQU"
+  },
+  {
+    "npub": "npub1z7tdpn9qyyyu7zp0p7gmk7hnjp66n69l465zhyuu9mrgup0a5lxquk79va",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ-ZUZu3C2kUcRq3WPc-8PPKI"
+  },
+  {
+    "npub": "npub1zr48a0fqlwafv6vzvde606qed29dwnwqaz79dlph33w9j3rg4v7qv8j3rr",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJ5W1rsyMokEcRD7q_2n6UZ4E"
+  },
+  {
+    "npub": "npub1zy9zl7pd5f7dmr92npzu0g7cra63gd2d44j2280ltku9hag34t8qsrpu7w",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJaQX_xbkCkEcRDeUV3yi5_Qs"
+  },
+  {
+    "npub": "npub1zz4d2g6lj3w7fv4ewhy6lg4jfh2jrq06jga747pv3hcfhjz62kesnajgr0",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query_place_id=ChIJfyuIBVoTkEcRk3dPyErQvlI"
+  }
+]

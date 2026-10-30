@@ -48,6 +48,7 @@ const publicPin = {
   supports: publicPlaceSupports('DFX.swiss'),
   activity: 'none',
   coverPhoto: null,
+  googleMapsUrl: null,
 };
 
 const jsonHeaders = {
@@ -484,6 +485,7 @@ describe('map routes', () => {
       supports: publicPlaceSupports('DFX.swiss'),
       activity: 'none',
       coverPhoto: null,
+      googleMapsUrl: null,
     });
   });
 

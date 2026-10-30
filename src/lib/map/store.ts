@@ -37,6 +37,7 @@ export const MAP_PLACE_SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS map_place (
   activity_until TEXT,
   nostr_pubkey TEXT,
   active INTEGER NOT NULL DEFAULT 1,
+  google_maps_url TEXT,
   UNIQUE (origin, external_id)
 );
 CREATE TABLE IF NOT EXISTS map_place_support (
@@ -274,7 +275,7 @@ function storedPhotoOf(photo: PreparedPhoto): StoredPlacePhoto {
  * stored (R7), and
  * lastTransactionAt is null or a parseable instant with a four-digit year, which
  * matches SQLite `julianday()` for the canonical ISO instants this service writes.
- * `active` is not part of this rule.
+ * `active` is not part of this rule. The Google Maps link is not part of it either.
  *
  * @param place - Stored pin, including an incomplete row.
  * @returns The problems, in check order. No I/O.
@@ -371,6 +372,7 @@ function toStoredPlace(input: MapPlaceInput, id: string, createdAt: string): Sto
     lastTransactionAt: null,
     activity: 'none',
     active: true,
+    googleMapsUrl: input.googleMapsUrl === undefined ? null : input.googleMapsUrl,
     id,
     createdAt,
   };
@@ -488,9 +490,9 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
 
   /**
    * Insert when the pair is new. An existing pair is returned unchanged, except
-   * that a row without a key stores the key this write carries. A new pair
-   * whose exact name another row stores is refused and stores nothing. An
-   * existing pair does not check the name.
+   * that a row without a key stores the key this write carries. A repeat does
+   * not change the Google Maps link. A new pair whose exact name another row
+   * stores is refused and stores nothing. An existing pair does not check the name.
    *
    * @param input - Validated pin.
    * @param revision - Request revision (R8), when sent.
@@ -503,6 +505,7 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
   /**
    * Insert when the pair is new, otherwise replace the pin's content (name, description,
    * position, category, payment methods, tech provider, shop type, address, supports).
+   * The Google Maps link is written only when the pin carries that property.
    * The id, photos, timestamps, activity, and active flag stay, and the stored revision
    * changes only when one is sent. A stored key is kept; a row without a key stores the key
    * this write carries. A new or replacing write whose exact name another row stores is
@@ -579,6 +582,9 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
       existing.city = input.city;
       existing.country = input.country;
       existing.supports = storedSupports(input.supports);
+      if (input.googleMapsUrl !== undefined) {
+        existing.googleMapsUrl = input.googleMapsUrl;
+      }
     }
     return { ok: true, created: false, place: copyStoredPlace(existing) };
   }
@@ -595,7 +601,8 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
    * `keep` does not change activity, the refresh deadline, or payment days.
    * `set` stores that token, clears the refresh deadline, and leaves payment days.
    * `recompute` leaves payment days and classifies from the written instant.
-   * `active` is stored as given.
+   * `active` is stored as given. The Google Maps link is written only when the
+   * content carries that property.
    *
    * @param input - Id, validated pin, timestamps, activity write, and clock.
    * @returns A copy when updated, otherwise missing, conflict, or `{ status: 'keyConflict', error }`
@@ -662,6 +669,9 @@ export class MemoryMapPlaceStore implements MapPlaceStore {
     existing.createdAt = input.createdAt;
     existing.lastTransactionAt = input.lastTransactionAt;
     existing.active = input.active;
+    if (input.content.googleMapsUrl !== undefined) {
+      existing.googleMapsUrl = input.content.googleMapsUrl;
+    }
     if (input.activity.kind === 'set') {
       existing.activity = input.activity.activity;
       this.#activityUntil.delete(existing.id);

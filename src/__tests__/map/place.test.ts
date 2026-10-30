@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { publicPlaceSupports } from '@/lib/map/filter-catalog';
+import googleMapsSeed from '@/lib/map/google-maps-seed.json' with { type: 'json' };
+import { npubDecode } from '@/lib/map/nostr-key';
 import {
+  isGoogleMapsUrl,
   normalizeMapPlace,
   normalizeMapPlaceDelete,
   normalizeMapPlaceFilter,
@@ -1163,6 +1166,85 @@ describe('normalizePlaceTransaction', () => {
   });
 });
 
+describe('normalizeMapPlace google maps link', () => {
+  const search = 'https://www.google.com/maps/search/?api=1&query_place_id=ChIJtest';
+  const goo = 'https://maps.app.goo.gl/abc';
+  const linkError = 'Place Google Maps link is invalid';
+
+  it('leaves the property off when the key is absent and keeps JSON null', () => {
+    const absent = normalizeMapPlace(valid);
+    expect(absent.ok).toBe(true);
+    if (absent.ok) {
+      expect(Object.hasOwn(absent.value, 'googleMapsUrl')).toBe(false);
+    }
+    const cleared = normalizeMapPlace({ ...valid, googleMapsUrl: null });
+    expect(cleared.ok).toBe(true);
+    if (cleared.ok) {
+      expect(Object.hasOwn(cleared.value, 'googleMapsUrl')).toBe(true);
+      expect(cleared.value.googleMapsUrl).toBeNull();
+    }
+  });
+
+  it('rejects a value that is not a Google Maps https link', () => {
+    const prefix = 'https://www.google.com/maps/';
+    const tooLong = `${prefix}${'a'.repeat(2001 - prefix.length)}`;
+    for (const googleMapsUrl of [
+      1,
+      { href: search },
+      '',
+      '   ',
+      'http://www.google.com/maps',
+      'https://user@www.google.com/maps',
+      'https://www.google.com:8443/maps',
+      'https://www.google.com:443/maps',
+      'https:///www.google.com:8443/maps',
+      'https:///user:pw@www.google.com/maps',
+      'https:\\\\www.google.com:8443/maps',
+      'https://www.google.com\\maps/x',
+      'https://www.google.com/maps/place/\u0000x',
+      'https://www.google.com/maps/place/\u007fx',
+      'https://www.google.com/maps/place/\u200bx',
+      'https://evil.example/maps',
+      'javascript:alert(1)',
+      'https://www.google.com/search',
+      'https://www.google.com',
+      'https://maps.app.goo.gl/',
+      'https://maps.app.goo.gl',
+      'https://[',
+      'https://www.google.com/maps/a b',
+      tooLong,
+    ]) {
+      expect(normalizeMapPlace({ ...valid, googleMapsUrl })).toEqual({
+        ok: false,
+        error: linkError,
+      });
+    }
+  });
+
+  it('stores a trimmed https link for the allowed hosts and paths', () => {
+    const prefix = 'https://www.google.com/maps/';
+    const exactLength = `${prefix}${'a'.repeat(2000 - prefix.length)}`;
+    expect(exactLength.length).toBe(2000);
+    for (const googleMapsUrl of [
+      search,
+      `  ${search}  `,
+      goo,
+      'https://www.google.com/maps',
+      'https://www.google.com/maps/',
+      'https://google.com/maps',
+      'https://maps.google.com/maps/place',
+      'https://www.google.com/maps#place',
+      exactLength,
+    ]) {
+      const parsed = normalizeMapPlace({ ...valid, googleMapsUrl });
+      expect(parsed.ok).toBe(true);
+      if (parsed.ok) {
+        expect(parsed.value.googleMapsUrl).toBe(googleMapsUrl.trim());
+      }
+    }
+  });
+});
+
 describe('toPublicMapPlace', () => {
   it('omits the caller id and payment methods, derives shopName and gives a keyless row a null id', () => {
     const stored: StoredMapPlace = {
@@ -1186,6 +1268,7 @@ describe('toPublicMapPlace', () => {
       lastTransactionAt: null,
       activity: 'none',
       active: true,
+      googleMapsUrl: null,
       nostrPubkey: null,
       id: 'id-1',
       createdAt: '2026-09-26T00:00:00.000Z',
@@ -1209,6 +1292,7 @@ describe('toPublicMapPlace', () => {
       supports: publicPlaceSupports('DFX.swiss'),
       activity: 'none',
       coverPhoto: null,
+      googleMapsUrl: null,
     });
     const hidden = toPublicMapPlace(stored, 'https://api.test');
     expect(hidden).not.toHaveProperty('externalId');
@@ -1239,6 +1323,7 @@ describe('toPublicMapPlace', () => {
       lastTransactionAt: null,
       activity: 'daily',
       active: false,
+      googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query_place_id=ChIJtest',
       nostrPubkey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
       id: 'id-1',
       createdAt: '2026-09-26T00:00:00.000Z',
@@ -1264,6 +1349,7 @@ describe('toPublicMapPlace', () => {
       supports: publicPlaceSupports('DFX.swiss'),
       activity: 'daily',
       coverPhoto: null,
+      googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query_place_id=ChIJtest',
     });
     publicPlace.supports.push({ blockchain: 'Polygon', asset: 'ETH' });
     expect(stored.supports).toEqual([{ blockchain: 'Ethereum', asset: 'ZCHF' }]);
@@ -1354,5 +1440,17 @@ describe('normalizeMapPlaceDelete', () => {
       ok: false,
       error: 'Place revision is invalid',
     });
+  });
+});
+
+describe('google maps seed', () => {
+  it('holds one valid link for each distinct place key', () => {
+    const keys = new Set<string>();
+    for (const entry of googleMapsSeed) {
+      expect(npubDecode(entry.npub)).not.toBeNull();
+      expect(isGoogleMapsUrl(entry.googleMapsUrl)).toBe(true);
+      keys.add(entry.npub);
+    }
+    expect(keys.size).toBe(googleMapsSeed.length);
   });
 });

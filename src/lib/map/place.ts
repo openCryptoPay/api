@@ -40,6 +40,11 @@ export type MapPlaceInput = {
    * have none and the stores keep a stored key when a write leaves it out.
    */
   nostrPubkey?: string;
+  /**
+   * Google Maps https link. Absent when the JSON key is absent. Null when the
+   * JSON value is null. Otherwise the trimmed link.
+   */
+  googleMapsUrl?: string | null;
 };
 
 export type PlaceActivity = 'daily' | 'within7Days' | 'within30Days' | 'olderThan30Days' | 'none';
@@ -73,6 +78,8 @@ export type StoredMapPlace = Omit<MapPlaceInput, 'techProvider' | 'nostrPubkey'>
   activity: PlaceActivity;
   /** Shown on the public map when true. Not part of completeness. */
   active: boolean;
+  /** Stored https link, or null. Not part of completeness. */
+  googleMapsUrl: string | null;
 };
 
 /** Fields the public map may show. The caller's own id stays off this list. */
@@ -98,6 +105,8 @@ export type PublicMapPlace = {
   activity: PlaceActivity;
   /** The first photo without its caption, or null. */
   coverPhoto: Omit<PublicPhoto, 'caption'> | null;
+  /** Stored https link, or null. Not part of completeness. */
+  googleMapsUrl: string | null;
 };
 
 /** One shop of `GET /map/places/{npub}`: the list entry plus every photo. */
@@ -131,6 +140,12 @@ const TRANSACTION_TIME_ERROR = 'Place transaction time is invalid';
 const NOSTR_PUBKEY_ERROR = 'Place NOSTR public key is invalid';
 const NOSTR_PUBKEY_REQUIRED_ERROR = 'Place NOSTR public key is required';
 const REVISION_ERROR = 'Place revision is invalid';
+const GOOGLE_MAPS_URL_ERROR = 'Place Google Maps link is invalid';
+const GOOGLE_MAPS_HOSTS: ReadonlySet<string> = new Set([
+  'www.google.com',
+  'google.com',
+  'maps.google.com',
+]);
 const FOUR_DIGIT_YEAR = /^\d{4}-/u;
 
 const ALLOWED_PLACE_KEYS: ReadonlySet<string> = new Set([
@@ -151,6 +166,7 @@ const ALLOWED_PLACE_KEYS: ReadonlySet<string> = new Set([
   'country',
   'supports',
   'nostrPubkey',
+  'googleMapsUrl',
   'revision',
 ]);
 
@@ -816,8 +832,55 @@ function normalizeNostrPubkey(
 }
 
 /**
- * Validate a JSON body for one map pin, including the required NOSTR key (R7)
- * and the optional request revision (R8).
+ * A Google Maps https link. The caller trims. No whitespace, no backslash, no
+ * control or format character, no userinfo, no port, at most 2000 characters.
+ * The host follows `https://` directly. The host is exactly `www.google.com`,
+ * `google.com`, `maps.google.com`, or `maps.app.goo.gl`. The first three need the path
+ * `/maps` or a path that starts with `/maps/`. `maps.app.goo.gl` needs a path
+ * longer than `/`. Query and hash stay.
+ *
+ * @param value - Trimmed candidate.
+ * @returns True when the link may be stored.
+ */
+export function isGoogleMapsUrl(value: string): boolean {
+  if (/[\s\\\p{Cc}\p{Cf}]/u.test(value)) {
+    return false;
+  }
+  if (value.length < 1 || value.length > 2000) {
+    return false;
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') {
+    return false;
+  }
+  // The URL parser skips extra slashes before the host, so the host must follow
+  // `https://` directly for the userinfo and port check below.
+  if (!/^https:\/\/[^/]/iu.test(value)) {
+    return false;
+  }
+  const rest = value.slice('https://'.length);
+  const stop = rest.search(/[/?#]/u);
+  const authority = stop < 0 ? rest : rest.slice(0, stop);
+  if (authority.includes('@') || authority.includes(':')) {
+    return false;
+  }
+  if (url.hostname === 'maps.app.goo.gl') {
+    return url.pathname.length > 1;
+  }
+  if (!GOOGLE_MAPS_HOSTS.has(url.hostname)) {
+    return false;
+  }
+  return url.pathname === '/maps' || url.pathname.startsWith('/maps/');
+}
+
+/**
+ * Validate a JSON body for one map pin, including the required NOSTR key (R7),
+ * the optional request revision (R8), and the optional Google Maps link.
  *
  * @param input - Request JSON.
  * @returns The pin and its revision, or a fixed error message.
@@ -944,6 +1007,22 @@ export function normalizeMapPlace(
     return revision;
   }
 
+  let googleMapsUrl: string | null | undefined = undefined;
+  if (Object.hasOwn(rec, 'googleMapsUrl')) {
+    const rawLink = rec['googleMapsUrl'];
+    if (rawLink === null) {
+      googleMapsUrl = null;
+    } else if (typeof rawLink !== 'string') {
+      return { ok: false, error: GOOGLE_MAPS_URL_ERROR };
+    } else {
+      const trimmed = rawLink.trim();
+      if (!isGoogleMapsUrl(trimmed)) {
+        return { ok: false, error: GOOGLE_MAPS_URL_ERROR };
+      }
+      googleMapsUrl = trimmed;
+    }
+  }
+
   const value: MapPlaceInput & { nostrPubkey: string } = {
     origin: origin.value,
     externalId: externalId.value,
@@ -964,6 +1043,9 @@ export function normalizeMapPlace(
   };
   if (techProvider.value !== undefined) {
     value.techProvider = techProvider.value;
+  }
+  if (googleMapsUrl !== undefined) {
+    value.googleMapsUrl = googleMapsUrl;
   }
   return { ok: true, value, revision: revision.value };
 }
@@ -1245,7 +1327,7 @@ export function publicPhoto(photo: StoredPlacePhoto, baseUrl: string): PublicPho
  *
  * @param place - Stored pin.
  * @param baseUrl - `OCP_PUBLIC_BASE_URL`, the origin of every photo URL.
- * @returns The public map row, including the stored activity and the cover photo.
+ * @returns The public map row, including the stored activity, the cover photo, and the Google Maps link.
  */
 export function toPublicMapPlace(place: StoredMapPlace, baseUrl: string): PublicMapPlace {
   const cover = place.photos[0];
@@ -1275,6 +1357,7 @@ export function toPublicMapPlace(place: StoredMapPlace, baseUrl: string): Public
             width: cover.width,
             height: cover.height,
           },
+    googleMapsUrl: place.googleMapsUrl,
   };
 }
 

@@ -1830,3 +1830,68 @@ describe('MemoryMapPlaceStore active', () => {
     expect(store.list(10)).toEqual([]);
   });
 });
+
+describe('MemoryMapPlaceStore google maps link', () => {
+  const link = 'https://www.google.com/maps/search/?api=1&query_place_id=ChIJtest';
+  const other = 'https://maps.app.goo.gl/abc';
+  const nowMs = Date.parse('2026-10-08T12:00:00.000Z');
+
+  function replace(
+    store: ReturnType<typeof keyedStore>,
+    id: string,
+    content: MapPlaceInput,
+  ): ReturnType<MemoryMapPlaceStore['replaceById']> {
+    return store.replaceById({
+      id,
+      content,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      lastTransactionAt: null,
+      activity: { kind: 'keep' },
+      active: true,
+      nowMs,
+    });
+  }
+
+  it('stores null when the key is absent and keeps the first link on a second insert', () => {
+    const absent = keyedStore(new MemoryMapPlaceStore());
+    const created = absent.insertIfNew(input);
+    expect(created.place.googleMapsUrl).toBeNull();
+
+    const store = keyedStore(new MemoryMapPlaceStore());
+    const first = store.insertIfNew({ ...input, googleMapsUrl: link });
+    expect(first.place.googleMapsUrl).toBe(link);
+    const second = store.insertIfNew({ ...input, googleMapsUrl: other });
+    expect(second.created).toBe(false);
+    expect(second.place.googleMapsUrl).toBe(link);
+    expect(store.getById(first.place.id)?.googleMapsUrl).toBe(link);
+  });
+
+  it('keeps the link when upsert omits the key, replaces it, and deletes it with null', () => {
+    const store = keyedStore(new MemoryMapPlaceStore());
+    store.insertIfNew({ ...input, googleMapsUrl: link });
+    const kept = store.upsert(input);
+    expect(kept.place.googleMapsUrl).toBe(link);
+    const replaced = store.upsert({ ...input, googleMapsUrl: other });
+    expect(replaced.place.googleMapsUrl).toBe(other);
+    const cleared = store.upsert({ ...input, googleMapsUrl: null });
+    expect(cleared.place.googleMapsUrl).toBeNull();
+    expect(store.getById(kept.place.id)?.googleMapsUrl).toBeNull();
+  });
+
+  it('keeps, sets, and clears the link on replaceById', () => {
+    const store = keyedStore(new MemoryMapPlaceStore(() => new Date(nowMs)));
+    const created = store.insertIfNew({ ...input, googleMapsUrl: link });
+    expect(replace(store, created.place.id, input)).toMatchObject({
+      status: 'updated',
+      place: { googleMapsUrl: link },
+    });
+    expect(replace(store, created.place.id, { ...input, googleMapsUrl: other })).toMatchObject({
+      status: 'updated',
+      place: { googleMapsUrl: other },
+    });
+    expect(replace(store, created.place.id, { ...input, googleMapsUrl: null })).toMatchObject({
+      status: 'updated',
+      place: { googleMapsUrl: null },
+    });
+  });
+});

@@ -147,6 +147,35 @@ test('Function: createApp — POST /map/places without a bearer is 401', async (
   expect(res.status()).toBe(401);
 });
 
+test('Function: isGoogleMapsUrl — an invalid link is 400 and a valid link is listed', async ({
+  request,
+}) => {
+  const invalid = await request.post('/map/places', {
+    headers: ingest,
+    data: completePlace({
+      externalId: 'e2e-google-maps',
+      name: 'SPAR Maps Link',
+      googleMapsUrl: 'http://www.google.com/maps',
+    }),
+  });
+  expect(invalid.status()).toBe(400);
+  expect(await invalid.json()).toEqual({ error: 'Place Google Maps link is invalid' });
+  const created = await request.post('/map/places', {
+    headers: ingest,
+    data: completePlace({
+      externalId: 'e2e-google-maps',
+      name: 'SPAR Maps Link',
+      googleMapsUrl: 'https://maps.app.goo.gl/abc',
+    }),
+  });
+  expect(created.status()).toBe(201);
+  const listed = (await (await request.get('/map/places')).json()) as {
+    places: Array<{ name: string; googleMapsUrl: string | null }>;
+  };
+  const row = listed.places.find((place) => place.name === 'SPAR Maps Link');
+  expect(row?.googleMapsUrl).toBe('https://maps.app.goo.gl/abc');
+});
+
 test('Function: normalizeMapPlace — POST /map/places creates one pin', async ({ request }) => {
   const created = await request.post('/map/places', {
     headers: { Authorization: 'Bearer e2e-ingest' },
