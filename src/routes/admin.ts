@@ -13,8 +13,9 @@ import {
   type StoredMapPlace,
 } from '@/lib/map/place';
 import { npubEncode } from '@/lib/map/nostr-key';
+import { MAX_PHOTO_BODY_BYTES } from '@/lib/map/photo';
 import { placeProblems, type AdminActivityWrite, type MapPlaceStore } from '@/lib/map/store';
-import { deletePlace, putPlace } from '@/routes/map';
+import { deletePlace, putPlace, replacePlacePhotos } from '@/routes/map';
 
 export type AdminRouteDeps = {
   store: MapPlaceStore;
@@ -36,6 +37,10 @@ type AdminEnv = {
 };
 
 const MAX_ADMIN_BODY_BYTES = 64 * 1024;
+/** The photo replace takes the photo body limit; every other admin request keeps 64 KiB. */
+const PHOTOS_PATH_SUFFIX = '/places/photos';
+/** Same window as `verifyAdminRequest`. */
+const ADMIN_WINDOW_SECONDS = 60;
 const FOUR_DIGIT_YEAR = /^\d{4}-/u;
 const PLACE_ACTIVITIES: ReadonlySet<string> = new Set(PLACE_ACTIVITY_VALUES);
 
@@ -216,7 +221,10 @@ function adminReplaceBody(
  * Signed admin maintenance for any origin. Mounted at `/admin`.
  * The signature uses the configured host, never the request Host header.
  * The body is read once and then parsed as JSON for PUT and DELETE.
- * Bodies above 64 KiB answer 413 before the signature is checked.
+ * Bodies above 64 KiB answer 413 before the signature is checked, except `PUT /places/photos`,
+ * which takes the photo body limit of `PUT /map/places/photos`. Before that body is read,
+ * `OCP-Admin-Key` must name a configured key and `OCP-Admin-Timestamp` must be an integer
+ * within 60 seconds of the clock, otherwise 401.
  * GET returns the public place with the internal id as `id` and the public id
  * as `npub`, and adds the caller id, payment methods, created time, last
  * transaction time, and `active`. It does not add the refresh deadline or payment days.
@@ -229,6 +237,8 @@ function adminReplaceBody(
  * before `normalizeMapPlace`.
  * DELETE with `id` still rejects a different origin or caller id and needs no revision.
  * Without `id`, PUT and DELETE keep the origin and external id paths with the source rules.
+ * PUT `/places/photos` replaces every photo of one shop with the body and rules of
+ * `PUT /map/places/photos`, signed instead of the ingest bearer.
  *
  * @param deps - Store, BTC Map environment, allowed keys, configured host, the public base URL
  * of photo URLs, and an optional clock.
@@ -248,13 +258,30 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     await next();
   });
 
-  app.use(
-    '*',
-    bodyLimit({
-      maxSize: MAX_ADMIN_BODY_BYTES,
-      onError: (c) => c.json({ error: 'Payload too large' }, 413),
-    }),
-  );
+  const placeBodyLimit = bodyLimit({
+    maxSize: MAX_ADMIN_BODY_BYTES,
+    onError: (c) => c.json({ error: 'Payload too large' }, 413),
+  });
+  const photoBodyLimit = bodyLimit({
+    maxSize: MAX_PHOTO_BODY_BYTES,
+    onError: (c) => c.json({ error: 'Payload too large' }, 413),
+  });
+  app.use('*', (c, next) => {
+    if (c.req.method !== 'PUT' || !c.req.path.endsWith(PHOTOS_PATH_SUFFIX)) {
+      return placeBodyLimit(c, next);
+    }
+    // A photo body may be 15 MiB. Only a configured key with a fresh timestamp gets it read.
+    const keyName = c.req.header('OCP-Admin-Key');
+    const timestamp = Number(c.req.header('OCP-Admin-Timestamp'));
+    if (
+      !deps.keys.some((key) => key.name === keyName) ||
+      !Number.isSafeInteger(timestamp) ||
+      Math.abs(Math.floor(now() / 1000) - timestamp) > ADMIN_WINDOW_SECONDS
+    ) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    return photoBodyLimit(c, next);
+  });
 
   app.use('*', async (c, next) => {
     const rawBody = new Uint8Array(await c.req.arrayBuffer());
@@ -392,6 +419,14 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     // The validator requires a key and replaceById refuses a different one, so it is the row's key.
     const npub = npubEncode(parsed.value.nostrPubkey);
     return c.json({ created: false, id: replaced.place.id, npub, btcmap: 'skipped' }, 200);
+  });
+
+  app.put('/places/photos', (c) => {
+    const result = replacePlacePhotos(
+      { store: deps.store, publicBaseUrl: deps.publicBaseUrl },
+      parseJsonBody(c.get('rawBody')),
+    );
+    return c.json(result.body, result.status);
   });
 
   app.delete('/places', (c) => {
