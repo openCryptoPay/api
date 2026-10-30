@@ -266,7 +266,7 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     maxSize: MAX_PHOTO_BODY_BYTES,
     onError: (c) => c.json({ error: 'Payload too large' }, 413),
   });
-  app.use('*', (c, next) => {
+  app.use('*', async (c, next) => {
     if (c.req.method !== 'PUT' || !c.req.path.endsWith(PHOTOS_PATH_SUFFIX)) {
       return placeBodyLimit(c, next);
     }
