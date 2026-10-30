@@ -272,9 +272,7 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
   const isPhotoReplace = (method: string, path: string): boolean =>
     method === 'PUT' && path === PHOTOS_PATH;
   app.use('*', async (c, next) =>
-    isPhotoReplace(c.req.method, c.req.path)
-      ? photoBodyLimit(c, next)
-      : placeBodyLimit(c, next),
+    isPhotoReplace(c.req.method, c.req.path) ? photoBodyLimit(c, next) : placeBodyLimit(c, next),
   );
 
   // A photo body may be 15 MiB. Only a configured key with a fresh timestamp gets it read.
