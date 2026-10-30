@@ -1460,6 +1460,30 @@ describe('admin photo replace', () => {
     }
   });
 
+  it('keeps 64 KiB for another method or another path ending in /places/photos', async () => {
+    const api = build({ store: storeWithFremd() });
+    const large = new Uint8Array(64 * 1024 + 1);
+    const headers = { 'OCP-Admin-Key': 'desk', 'OCP-Admin-Timestamp': String(NOW_SECONDS) };
+    for (const [method, path] of [
+      ['DELETE', PHOTOS],
+      ['PUT', '/admin/x/places/photos'],
+      ['PUT', `${PHOTOS}/`],
+    ] as const) {
+      const response = await api.request(`http://${REQUEST_HOST}${path}`, {
+        method,
+        headers,
+        body: large,
+      });
+      expect(response.status).toBe(413);
+    }
+  });
+
+  it('accepts a photo upload signed exactly 60 seconds ago', async () => {
+    const signed = bind(build({ store: storeWithFremd() }));
+    const response = await signed('PUT', PHOTOS, upload([]), { timestamp: NOW_SECONDS - 60 });
+    expect(response.status).toBe(200);
+  });
+
   it('still checks the signature after the header check', async () => {
     const signed = bind(build({ store: storeWithFremd() }));
     const response = await signed('PUT', PHOTOS, upload([]), { host: REQUEST_HOST });

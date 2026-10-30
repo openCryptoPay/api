@@ -37,8 +37,8 @@ type AdminEnv = {
 };
 
 const MAX_ADMIN_BODY_BYTES = 64 * 1024;
-/** The photo replace takes the photo body limit; every other admin request keeps 64 KiB. */
-const PHOTOS_PATH_SUFFIX = '/places/photos';
+/** The photo replace takes the photo body limit; every other admin request keeps 64 KiB. `createApp` mounts this app at `/admin`. */
+const PHOTOS_PATH = '/admin/places/photos';
 /** Same window as `verifyAdminRequest`. */
 const ADMIN_WINDOW_SECONDS = 60;
 const FOUR_DIGIT_YEAR = /^\d{4}-/u;
@@ -267,7 +267,7 @@ export function adminRoutes(deps: AdminRouteDeps): Hono<AdminEnv> {
     onError: (c) => c.json({ error: 'Payload too large' }, 413),
   });
   app.use('*', async (c, next) => {
-    if (c.req.method !== 'PUT' || !c.req.path.endsWith(PHOTOS_PATH_SUFFIX)) {
+    if (c.req.method !== 'PUT' || c.req.path !== PHOTOS_PATH) {
       return placeBodyLimit(c, next);
     }
     // A photo body may be 15 MiB. Only a configured key with a fresh timestamp gets it read.

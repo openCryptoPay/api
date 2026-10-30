@@ -144,7 +144,8 @@ carry a revision:
 
 - Field `revision`, an integer from 1 to 9007199254740991 (the largest
   integer JSON keeps exactly), in `POST`, `PUT` and `DELETE` on
-  `/map/places` and in `PUT /map/places/photos`. Any other value gets
+  `/map/places` and in `PUT /map/places/photos` (and its signed admin
+  twin `PUT /admin/places/photos`). Any other value gets
   **400**. It is optional; a source that sends it must raise it for every
   request of the same place, places and photos sharing one counter.
 - OpenCryptoPay keeps the highest accepted revision per `origin` +
@@ -380,7 +381,7 @@ stored bytes are the stripped bytes.
 - `PUT /map/places` and `PUT /admin/places` keep the photos. `DELETE
 /map/places` and `DELETE /admin/places` (by pair or by internal id) remove
   them.
-- After `PUT /map/places/photos` and after every place delete, the same
+- After `PUT /map/places/photos`, `PUT /admin/places/photos`, and after every place delete, the same
   transaction deletes every `map_photo` row that no `map_place_photo` row of
   any shop uses any more. The same file can belong to several shops, so the
   check runs across all shops.
