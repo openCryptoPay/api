@@ -1447,13 +1447,17 @@ describe('admin photo replace', () => {
     ];
     for (const header of headers) {
       let pulled = false;
-      const body = new ReadableStream<Uint8Array>({
-        pull(controller) {
-          pulled = true;
-          controller.enqueue(new Uint8Array(1_048_576));
-          controller.close();
+      // A high-water mark of 0 pulls only when the server reads the body.
+      const body = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            pulled = true;
+            controller.enqueue(new Uint8Array(1_048_576));
+            controller.close();
+          },
         },
-      });
+        { highWaterMark: 0 },
+      );
       const response = await api.request(`http://${REQUEST_HOST}${PHOTOS}`, {
         method: 'PUT',
         headers: { ...header, 'Content-Length': '1048576' },
