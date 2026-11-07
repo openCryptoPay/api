@@ -13,9 +13,10 @@ any new environment variable in the README. R7 is in
 
 Every shop is registered with a NOSTR public key. That key is the shop's
 public identifier: in every public API answer, in the public page
-`https://opencryptopay.io/{npub}`, and in every new route. Only the signed
-admin interface keeps the internal id (see Storage). The
-page shows everything the API knows about the shop, including its photos. The
+`https://opencryptopay.io/{npub}`, and in every new route. The default public
+list does not return the internal id. `GET /map/places?flag=completeList`
+returns it as `recordId`. The signed admin interface keeps it as `id`
+(see Storage). The page shows everything the API knows about the shop, including its photos. The
 API stores the photos and serves them.
 
 OpenCryptoPay does not hold NOSTR keys, does not sign anything and does not

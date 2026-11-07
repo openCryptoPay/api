@@ -157,15 +157,16 @@ Name examples: `SPAR Maschlinastrasse 4, 9495 Triesen` (`spar`) and
 
 - **Target:** every shop has a NOSTR public key that is valid, unique over
   all sources and over time, fixed once stored, and its public id in every
-  public answer (the signed admin interface keeps the internal id); a source
+  public answer (the default list omits the internal id, `GET /map/places?flag=completeList` returns it as `recordId`, and the signed admin interface keeps it as `id`); a source
   write without one is rejected.
 - **Code:** met with #26 (steps 1a and 1b of [shop-identity.md](shop-identity.md)).
   `POST` and `PUT /map/places` require and validate `nostrPubkey` (400 without
   it; a signed admin `PUT` by internal id may leave it out and keeps the stored
   key, 400 only when the row has none), reserve it for its origin and external id, and refuse a changed key or
   a key of another shop with 409. A row stored before step 1a has no key, is
-  not complete, and stays out of `GET /map/places`, `GET /map/places/{npub}`
+  not complete, and stays out of the default `GET /map/places` and out of `GET /map/places/{npub}`
   and the countries of `GET /map/filters` until a write adds one.
+  `GET /map/places?flag=completeList` still returns that row.
 - **Data:** the column is new, so no stored shop has a key yet, and none is
   public until its source sends one.
 - **Sources:** both send keys with step 3 of shop-identity.md, which ships
