@@ -114,11 +114,13 @@ carries a key (step 1b), so the write path never stores a null. A signed admin
 without a key it must send one.
 
 `origin` + `externalId` stay the source's own key for idempotent writes. Every
-public response and every new route uses the NOSTR key instead. The internal
-UUID no longer appears in any public JSON: the `id` in the answers of `POST`
-and `PUT /map/places` is the npub.
+public response uses the NOSTR key as `id`. The `id` in the answers of `POST`
+and `PUT /map/places` is the npub. The default `GET /map/places` does not
+return the internal UUID. `GET /map/places?flag=completeList` is public and
+adds that UUID as `recordId`, while `id` stays the npub, or null when the row
+has no key.
 
-Only the signed admin interface still shows the internal UUID, because it
+The signed admin interface still shows the internal UUID as `id`, because it
 must also reach places without a key. `GET /admin/places` returns it as `id`
 and the npub as `npub`. `PUT` and `DELETE /admin/places` with that `id` are
 admin corrections outside the source's write order. They reject an npub as
@@ -416,7 +418,7 @@ stored bytes are the stripped bytes.
 
 ### `GET /map/places`
 
-- `id` is the shop's npub. The internal UUID is no longer returned.
+- On the default list, `id` is the shop's npub and the internal UUID is not returned. `?flag=completeList` returns every stored row and adds the internal UUID as `recordId`. `id` stays the npub, or null without a key.
 - New field `coverPhoto`: `null`, or `{ "url", "width", "height" }` for the
   first photo.
 

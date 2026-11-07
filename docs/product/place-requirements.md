@@ -102,9 +102,11 @@ and 21.gifts. The same rules apply to both, and to any later source.
 
 ## R7 NOSTR identity
 
-Every shop must state a NOSTR public key, which is its public id in every
-public answer and in the public URL `https://opencryptopay.io/{npub}`. Only
-the signed admin interface keeps the internal id. The full rules are in
+Every shop must state a NOSTR public key, which is its public id (`id`) in
+public answers and in the public URL `https://opencryptopay.io/{npub}`. The
+default public list does not return the internal id.
+`GET /map/places?flag=completeList` returns it as `recordId`. The signed
+admin interface keeps the internal id as `id`. The full rules are in
 [shop-identity.md](shop-identity.md).
 
 - The key is the x-only secp256k1 public key from NIP-01, sent as 64
@@ -126,8 +128,8 @@ the signed admin interface keeps the internal id. The full rules are in
 
 Deactivation is not deletion. A signed admin replace by internal id
 (`PUT /admin/places` whose JSON object has its own property `id`) may set
-`active` to false. The row stays stored. It leaves `GET /map/places`,
+`active` to false. The row stays stored. It leaves the default `GET /map/places`,
 `GET /map/places/{npub}`, a photo no other public shop uses, and the country
-aggregate of `GET /map/filters`. Completeness and `problems` ignore the flag.
+aggregate of `GET /map/filters`. `GET /map/places?flag=completeList` still returns the row, with `active` false. Completeness and `problems` ignore the flag.
 A source `POST` or `PUT /map/places` cannot set the flag. Setting `active`
 back to true is the same admin replace. Delete remains delete.
