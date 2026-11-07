@@ -461,6 +461,43 @@ test('Function: adminRoutes — PUT /admin/places rewrites one internal id and r
   }
 });
 
+test('Function: replacePlacePhotos — PUT /admin/places/photos stores a photo signed by an admin key', async ({
+  request,
+}) => {
+  const key = keyFor('fremd/photo-admin');
+  const place = { ...fremd, externalId: 'photo-admin', name: 'Admin Photo Shop', nostrPubkey: key };
+  const placeBody = JSON.stringify(place);
+  const created = await request.put('/admin/places', {
+    headers: signedHeaders('PUT', PATH, Buffer.from(placeBody)),
+    data: placeBody,
+  });
+  expect([200, 201]).toContain(created.status());
+  const photoBody = JSON.stringify({
+    origin: place.origin,
+    nostrPubkey: key,
+    photos: [{ contentType: 'image/png', data: base64(simplePng(9, 7)), caption: 'Front' }],
+  });
+  const stored = await request.put('/admin/places/photos', {
+    headers: signedHeaders('PUT', '/admin/places/photos', Buffer.from(photoBody)),
+    data: photoBody,
+  });
+  expect(stored.status()).toBe(200);
+  const answer = (await stored.json()) as {
+    photos: Array<{ url: string; width: number; height: number; caption: string }>;
+    skipped: unknown[];
+  };
+  expect(answer.skipped).toEqual([]);
+  expect(answer.photos).toHaveLength(1);
+  expect(answer.photos[0]).toMatchObject({ width: 9, height: 7, caption: 'Front' });
+  const unsigned = await request.put('/admin/places/photos', { data: photoBody });
+  expect(unsigned.status()).toBe(401);
+  const viaIngest = await request.put('/admin/places/photos', {
+    headers: { Authorization: 'Bearer e2e-ingest' },
+    data: photoBody,
+  });
+  expect(viaIngest.status()).toBe(401);
+});
+
 test('Function: deletePlace — DELETE /admin/places removes the pin', async ({ request }) => {
   const body = JSON.stringify({ origin: fremd.origin, externalId: fremd.externalId });
   const res = await request.delete('/admin/places', {
@@ -606,7 +643,7 @@ test('Function: ocp-admin CLI — a non-Ed25519 key file and a key name starting
   }
 });
 
-test('Function: ocp-admin CLI — list, put, and delete sign like the server', () => {
+test('Function: ocp-admin CLI — list, put, delete, and photos sign like the server', () => {
   const home = mkdtempSync(join(tmpdir(), 'ocp-admin-home-'));
   try {
     const privateKeyPem = process.env['OCP_E2E_ADMIN_PRIVATE_KEY'];
@@ -642,6 +679,35 @@ test('Function: ocp-admin CLI — list, put, and delete sign like the server', (
       );
 
     expect(run('put', placesFile)).toContain('ok cli-1');
+
+    const photosFile = join(home, 'photos.json');
+    writeFileSync(
+      photosFile,
+      JSON.stringify([
+        {
+          origin: 'cli',
+          nostrPubkey: keyFor('cli/cli-1'),
+          photos: [{ contentType: 'image/png', data: base64(simplePng(4, 3)) }],
+        },
+        { origin: 'cli', nostrPubkey: keyFor('cli/none'), photos: [] },
+      ]),
+    );
+    let photosError: unknown;
+    try {
+      run('photos', photosFile);
+    } catch (error) {
+      photosError = error;
+    }
+    expect(
+      typeof photosError === 'object' &&
+        photosError !== null &&
+        'stdout' in photosError &&
+        typeof photosError.stdout === 'string'
+        ? photosError.stdout
+        : '',
+    ).toBe(
+      `ok ${keyFor('cli/cli-1')} 1 stored 0 skipped\nfail ${keyFor('cli/none')} 404 Place not found\n`,
+    );
 
     let staleDeleteError: unknown;
     try {

@@ -5,13 +5,13 @@
 The pages are generated from the schema `SqliteMapPlaceStore` creates at boot. `ENUM` means the code allows a fixed set of values while SQLite stores `TEXT`. Regenerate with `bun run db:docs`.
 
 - Tables: 7
-- Columns: 43
+- Columns: 44
 - Foreign keys: 4
 
 | Table                                                        | Source                                             | Columns | Foreign keys |
 | ------------------------------------------------------------ | -------------------------------------------------- | ------- | ------------ |
 | [`map_photo`](tables/map_photo.md)                           | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 5       | 0            |
-| [`map_place`](tables/map_place.md)                           | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 22      | 0            |
+| [`map_place`](tables/map_place.md)                           | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 23      | 0            |
 | [`map_place_payment_day`](tables/map_place_payment_day.md)   | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 2       | 1            |
 | [`map_place_photo`](tables/map_place_photo.md)               | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 4       | 2            |
 | [`map_place_revision`](tables/map_place_revision.md)         | [src/lib/map/store.ts](../../src/lib/map/store.ts) | 3       | 0            |

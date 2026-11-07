@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { publicFilterResponse, publicPlaceSupports } from '@/lib/map/filter-catalog';
 import { npubEncode } from '@/lib/map/nostr-key';
-import { normalizeMapPlace, type MapPlaceInput } from '@/lib/map/place';
+import { preparePhoto } from '@/lib/map/photo';
+import { normalizeMapPlace, type MapPlaceInput, type StoredMapPlace } from '@/lib/map/place';
 import { MemoryMapPlaceStore, type MapPhotoFile } from '@/lib/map/store';
 import { createApp } from '@/server';
 import { keyFor } from './keys';
@@ -48,6 +49,7 @@ const publicPin = {
   supports: publicPlaceSupports('DFX.swiss'),
   activity: 'none',
   coverPhoto: null,
+  googleMapsUrl: null,
 };
 
 const jsonHeaders = {
@@ -62,6 +64,30 @@ type AppOptions = {
   store?: MemoryMapPlaceStore;
   now?: () => number;
 };
+
+function pinContent(place: StoredMapPlace, overrides: Partial<MapPlaceInput> = {}): MapPlaceInput {
+  return {
+    origin: place.origin,
+    externalId: place.externalId,
+    name: place.name,
+    description: place.description,
+    lat: place.lat,
+    lon: place.lon,
+    category: place.category,
+    paymentMethods: place.paymentMethods,
+    techProvider: place.techProvider,
+    shopType: place.shopType,
+    street: place.street,
+    houseNumber: place.houseNumber,
+    postalCode: place.postalCode,
+    city: place.city,
+    country: place.country,
+    supports: place.supports,
+    ...(place.nostrPubkey === null ? {} : { nostrPubkey: place.nostrPubkey }),
+    googleMapsUrl: place.googleMapsUrl,
+    ...overrides,
+  };
+}
 
 function rawApp(opts: AppOptions) {
   return createApp({
@@ -257,6 +283,191 @@ describe('map routes', () => {
     expect((await api.request('/map/places?limit=0')).status).toBe(400);
     expect((await api.request('/map/places?limit=1001')).status).toBe(400);
     expect((await api.request('/map/places?limit=no')).status).toBe(400);
+  });
+
+  it('returns every stored shop for flag=completeList and rejects another flag', async () => {
+    const store = new MemoryMapPlaceStore();
+    const api = app({ token: 'secret', store });
+    const hidden = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ ...body, externalId: 'inactive-li' }),
+    });
+    expect(hidden.status).toBe(201);
+    const hiddenNpub = ((await hidden.json()) as { id: string }).id;
+    const visible = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        externalId: 'active-ch',
+        name: 'Other Shop',
+        description: OTHER_DESCRIPTION,
+        country: 'CH',
+        postalCode: '8001',
+        city: 'Zürich',
+        shopType: 'Others',
+        paymentMethods: 'lightning',
+      }),
+    });
+    expect(visible.status).toBe(201);
+    const visibleNpub = ((await visible.json()) as { id: string }).id;
+    const partner = await api.request('/map/places', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        ...body,
+        origin: 'spar',
+        externalId: 'spar-li',
+        name: 'SPAR Partner',
+      }),
+    });
+    expect(partner.status).toBe(201);
+
+    const storedHidden = store.listAll().find((row) => row.externalId === 'inactive-li');
+    const storedVisible = store.listAll().find((row) => row.externalId === 'active-ch');
+    if (storedHidden === undefined || storedVisible === undefined) {
+      throw new Error('missing stored place');
+    }
+    const nowMs = Date.parse(storedHidden.createdAt);
+    expect(
+      store.replaceById({
+        id: storedHidden.id,
+        content: pinContent(storedHidden, { description: '' }),
+        createdAt: storedHidden.createdAt,
+        lastTransactionAt: null,
+        activity: { kind: 'keep' },
+        active: false,
+        nowMs,
+      }).status,
+    ).toBe('updated');
+    const prepared = preparePhoto(
+      { contentType: 'image/png', data: base64(simplePng(2, 2)), caption: 'Front' },
+      0,
+    );
+    if (!prepared.ok || storedVisible.nostrPubkey === null) {
+      throw new Error(prepared.ok ? 'missing key' : prepared.error);
+    }
+    expect(store.replacePhotos('dfx', storedVisible.nostrPubkey, [prepared.photo]).ok).toBe(true);
+    const paidAt = '2026-10-01T00:00:00.000Z';
+    expect(
+      store.recordTransaction('dfx', 'active-ch', paidAt, Date.parse('2026-10-08T00:00:00.000Z')),
+    ).toBeDefined();
+
+    const publicList = (await (await api.request('/map/places')).json()) as {
+      places: Array<Record<string, unknown>>;
+    };
+    expect(publicList.places.map((row) => row['id'])).not.toContain(hiddenNpub);
+    expect(publicList.places.every((row) => !Object.hasOwn(row, 'recordId'))).toBe(true);
+    expect(publicList.places.every((row) => !Object.hasOwn(row, 'lastTransactionAt'))).toBe(true);
+    expect(publicList.places.every((row) => !Object.hasOwn(row, 'occurredAt'))).toBe(true);
+    expect(JSON.stringify(publicList)).not.toContain(paidAt);
+
+    const full = await api.request('/map/places?flag=completeList&limit=no');
+    expect(full.status).toBe(200);
+    const fullJson = (await full.json()) as { places: Array<Record<string, unknown>> };
+    expect(fullJson.places).toHaveLength(3);
+    const hiddenRow = fullJson.places.find((row) => row['id'] === hiddenNpub);
+    const visibleRow = fullJson.places.find((row) => row['id'] === visibleNpub);
+    expect(hiddenRow).toMatchObject({
+      id: hiddenNpub,
+      recordId: storedHidden.id,
+      externalId: 'inactive-li',
+      active: false,
+      complete: false,
+      problems: ['description is empty'],
+      photos: [],
+    });
+    expect(hiddenRow).not.toHaveProperty('lastTransactionAt');
+    expect(hiddenRow).not.toHaveProperty('occurredAt');
+    expect(hiddenRow?.['recordId']).not.toBe(hiddenNpub);
+    expect(visibleRow).toMatchObject({
+      id: visibleNpub,
+      recordId: storedVisible.id,
+      externalId: 'active-ch',
+      paymentMethods: 'lightning',
+      active: true,
+      complete: true,
+      problems: [],
+      country: 'CH',
+      shopType: 'Others',
+      shopName: null,
+    });
+    const photos = visibleRow?.['photos'];
+    expect(Array.isArray(photos)).toBe(true);
+    expect(photos).toHaveLength(1);
+    expect((photos as Array<{ url: string; caption: string }>)[0]?.url).toMatch(
+      /^https:\/\/api\.test\/map\/photos\/[0-9a-f]{64}\.png$/u,
+    );
+    expect((photos as Array<{ caption: string }>)[0]?.caption).toBe('Front');
+    expect(visibleRow).not.toHaveProperty('lastTransactionAt');
+    expect(visibleRow).not.toHaveProperty('occurredAt');
+    expect(JSON.stringify(fullJson)).not.toContain(paidAt);
+    expect(visibleRow?.['activity']).not.toBe(paidAt);
+
+    const byCountry = (await (
+      await api.request('/map/places?flag=completeList&country=LI')
+    ).json()) as {
+      places: Array<{ externalId: string }>;
+    };
+    expect(byCountry.places.map((row) => row.externalId).sort()).toEqual([
+      'inactive-li',
+      'spar-li',
+    ]);
+    const bySwiss = (await (
+      await api.request('/map/places?flag=completeList&country=CH')
+    ).json()) as {
+      places: Array<{ externalId: string }>;
+    };
+    expect(bySwiss.places.map((row) => row.externalId)).toEqual(['active-ch']);
+    const byOrigin = (await (
+      await api.request('/map/places?flag=completeList&origin=spar')
+    ).json()) as {
+      places: Array<{ externalId: string }>;
+    };
+    expect(byOrigin.places.map((row) => row.externalId)).toEqual(['spar-li']);
+    const byType = (await (
+      await api.request('/map/places?flag=completeList&shopType=Others')
+    ).json()) as {
+      places: Array<{ externalId: string }>;
+    };
+    expect(byType.places.map((row) => row.externalId)).toEqual(['active-ch']);
+    const byAsset = (await (
+      await api.request('/map/places?flag=completeList&asset=ETH')
+    ).json()) as {
+      places: Array<{ externalId: string }>;
+    };
+    expect(byAsset.places).toHaveLength(3);
+    const byPair = (await (
+      await api.request('/map/places?flag=completeList&blockchain=Ethereum&asset=ETH')
+    ).json()) as { places: unknown[] };
+    expect(byPair.places).toHaveLength(3);
+    const unmatched = await api.request(
+      '/map/places?flag=completeList&blockchain=Bitcoin&asset=ETH',
+    );
+    expect(unmatched.status).toBe(200);
+    expect(await unmatched.json()).toEqual({ places: [] });
+    expect((await api.request('/map/places?flag=completeList&limit=1')).status).toBe(200);
+    expect(
+      (
+        (await (await api.request('/map/places?flag=completeList&limit=1')).json()) as {
+          places: unknown[];
+        }
+      ).places,
+    ).toHaveLength(3);
+
+    expect((await api.request('/map/places?flag=full')).status).toBe(400);
+    expect(await (await api.request('/map/places?flag=full')).json()).toEqual({
+      error: 'Invalid flag',
+    });
+    expect((await api.request('/map/places?flag=')).status).toBe(400);
+    expect(await (await api.request('/map/places?flag=')).json()).toEqual({
+      error: 'Invalid flag',
+    });
+    expect((await api.request('/map/places?flag=completeList&country=ZZ')).status).toBe(400);
+    expect(await (await api.request('/map/places?flag=completeList&country=ZZ')).json()).toEqual({
+      error: 'Place country is invalid',
+    });
   });
 
   it('refuses ingest until a token is configured', async () => {
@@ -484,6 +695,7 @@ describe('map routes', () => {
       supports: publicPlaceSupports('DFX.swiss'),
       activity: 'none',
       coverPhoto: null,
+      googleMapsUrl: null,
     });
   });
 

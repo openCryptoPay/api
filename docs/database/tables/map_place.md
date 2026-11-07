@@ -30,6 +30,7 @@ Source: [src/lib/map/store.ts](../../../src/lib/map/store.ts)
 | `activity_until`      | Free text               | `TEXT`        | Yes      | –           | –          |
 | `nostr_pubkey`        | Free text               | `TEXT`        | Yes      | –           | –          |
 | `active`              | Integer                 | `INTEGER`     | No       | `1`         | –          |
+| `google_maps_url`     | Free text               | `TEXT`        | Yes      | –           | –          |
 
 ## Indexes
 

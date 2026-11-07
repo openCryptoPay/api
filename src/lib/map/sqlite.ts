@@ -1,8 +1,11 @@
 import { Database, SQLiteError } from 'bun:sqlite';
+import googleMapsSeed from '@/lib/map/google-maps-seed.json' with { type: 'json' };
 import { unstatedPaymentSql } from '@/lib/map/filter-catalog';
+import { npubDecode } from '@/lib/map/nostr-key';
 import type { PreparedPhoto } from '@/lib/map/photo';
 import type { PhotoType } from '@/lib/map/photo-strip';
 import {
+  isGoogleMapsUrl,
   placeActivity,
   type MapPlaceInput,
   type MapPlaceSupport,
@@ -26,7 +29,7 @@ import {
 } from '@/lib/map/store';
 
 const MAP_PLACE_COLUMNS =
-  'id, origin, external_id, name, description, lat, lon, category, payment_methods, created_at, tech_provider, country, street, house_number, postal_code, city, shop_type, last_transaction_at, activity, nostr_pubkey, active';
+  'id, origin, external_id, name, description, lat, lon, category, payment_methods, created_at, tech_provider, country, street, house_number, postal_code, city, shop_type, last_transaction_at, activity, nostr_pubkey, active, google_maps_url';
 
 /** SQL predicate: a row is complete. Public reads also require `active` = 1. */
 const COMPLETE_PLACE_SQL = `(name IS NOT NULL AND name != ''
@@ -67,6 +70,7 @@ type MapPlaceRow = {
   activity: PlaceActivity;
   nostr_pubkey: string | null;
   active: number;
+  google_maps_url: string | null;
 };
 
 function compareSupport(a: MapPlaceSupport, b: MapPlaceSupport): number {
@@ -133,6 +137,7 @@ function mapRow(
     lastTransactionAt: row.last_transaction_at,
     activity: row.activity,
     active: row.active === 1,
+    googleMapsUrl: row.google_maps_url,
     nostrPubkey: row.nostr_pubkey,
     supports: supports.map((item) => ({ blockchain: item.blockchain, asset: item.asset })),
     photos,
@@ -280,6 +285,22 @@ function backfillActivityFromLastTransaction(db: Database): void {
   }
 }
 
+function seedGoogleMapsUrls(db: Database): void {
+  const update = db.query(
+    'UPDATE map_place SET google_maps_url = ? WHERE nostr_pubkey = ? AND google_maps_url IS NULL',
+  );
+  for (const entry of googleMapsSeed) {
+    const pubkey = npubDecode(entry.npub);
+    if (pubkey === null) {
+      continue;
+    }
+    if (!isGoogleMapsUrl(entry.googleMapsUrl)) {
+      continue;
+    }
+    update.run(entry.googleMapsUrl, pubkey);
+  }
+}
+
 function insertSupportRows(db: Database, placeId: string, supports: MapPlaceSupport[]): void {
   const insert = db.query(
     'INSERT INTO map_place_support (place_id, blockchain, asset) VALUES (?, ?, ?)',
@@ -365,6 +386,13 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
         if (!columns.some((column) => column.name === 'active')) {
           this.#db.exec('ALTER TABLE map_place ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
         }
+        if (!columns.some((column) => column.name === 'google_maps_url')) {
+          // The column marks the seed as done, so both commit together or not at all.
+          this.#db.transaction(() => {
+            this.#db.exec('ALTER TABLE map_place ADD COLUMN google_maps_url TEXT');
+            seedGoogleMapsUrls(this.#db);
+          })();
+        }
       }
     }
     if (addedActivity) {
@@ -375,9 +403,9 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
 
   /**
    * Insert when the pair is new. An existing pair is returned unchanged, except
-   * that a row without a key stores the key this write carries. A new pair
-   * whose exact name another row stores is refused and stores nothing. An
-   * existing pair does not check the name.
+   * that a row without a key stores the key this write carries. A repeat does
+   * not change the Google Maps link. A new pair whose exact name another row
+   * stores is refused and stores nothing. An existing pair does not check the name.
    *
    * @param input - Validated pin.
    * @param revision - Request revision (R8), when sent.
@@ -390,6 +418,7 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
   /**
    * Insert when the pair is new, otherwise replace the pin's content (name, description,
    * position, category, payment methods, tech provider, shop type, address, supports).
+   * The Google Maps link is written only when the pin carries that property.
    * The id, photos, timestamps, activity, and active flag stay, and the stored revision
    * changes only when one is sent. A stored key is kept; a row without a key stores the key
    * this write carries. A new or replacing write whose exact name another row stores is
@@ -507,8 +536,9 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
           `INSERT INTO map_place (
              id, origin, external_id, name, description, lat, lon, category, payment_methods,
              created_at, tech_provider, country, street, house_number, postal_code, city,
-             shop_type, last_transaction_at, activity, activity_until, nostr_pubkey, active
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             shop_type, last_transaction_at, activity, activity_until, nostr_pubkey, active,
+             google_maps_url
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -533,6 +563,7 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
           null,
           key ?? null,
           1,
+          input.googleMapsUrl === undefined ? null : input.googleMapsUrl,
         );
       insertSupportRows(this.#db, id, supports);
       return {
@@ -563,6 +594,7 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
           lastTransactionAt: null,
           activity: 'none',
           active: true,
+          googleMapsUrl: input.googleMapsUrl === undefined ? null : input.googleMapsUrl,
           id,
           createdAt,
         },
@@ -604,6 +636,11 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
         existing.id,
       );
     replaceSupportRows(this.#db, existing.id, supports);
+    if (input.googleMapsUrl !== undefined) {
+      this.#db
+        .query('UPDATE map_place SET google_maps_url = ? WHERE id = ?')
+        .run(input.googleMapsUrl, existing.id);
+    }
     return {
       ok: true,
       created: false,
@@ -623,6 +660,8 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
         city: input.city,
         shop_type: input.shopType,
         nostr_pubkey: nostrPubkey,
+        google_maps_url:
+          input.googleMapsUrl === undefined ? existing.google_maps_url : input.googleMapsUrl,
       }),
     };
   }
@@ -637,7 +676,8 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
    * is allowed. Revisions (R8) are neither checked nor stored.
    * A UNIQUE failure rolls back, including support rows, and returns conflict.
    * `activity_until` is updated here even though it is not in `MAP_PLACE_COLUMNS`.
-   * `active` is written on every replace.
+   * `active` is written on every replace. The Google Maps link is written only
+   * when the content carries that property.
    *
    * @param input - Id, validated pin, timestamps, activity write, and clock.
    * @returns The stored row when updated, otherwise missing, conflict, or
@@ -757,6 +797,11 @@ export class SqliteMapPlaceStore implements MapPlaceStore {
         )
         .run(...params);
       replaceSupportRows(this.#db, existing.id, supports);
+      if (input.content.googleMapsUrl !== undefined) {
+        this.#db
+          .query('UPDATE map_place SET google_maps_url = ? WHERE id = ?')
+          .run(input.content.googleMapsUrl, existing.id);
+      }
       const updated = this.#db
         .query(
           `SELECT ${MAP_PLACE_COLUMNS}

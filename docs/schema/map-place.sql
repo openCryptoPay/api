@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS map_place (
   activity_until TEXT,
   nostr_pubkey TEXT,
   active INTEGER NOT NULL DEFAULT 1,
+  google_maps_url TEXT,
   UNIQUE (origin, external_id)
 );
 CREATE TABLE IF NOT EXISTS map_place_support (

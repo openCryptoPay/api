@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isNostrPubkey } from '../src/lib/map/nostr-key';
+import googleMapsSeed from '../src/lib/map/google-maps-seed.json' with { type: 'json' };
+import { isNostrPubkey, npubDecode } from '../src/lib/map/nostr-key';
 import { preparePhoto, type PreparedPhoto } from '../src/lib/map/photo';
 import { simplePng } from '../src/__tests__/map/photo-fixtures';
 import { placeActivity } from '../src/lib/map/place';
 import type { MapPlaceInput } from '../src/lib/map/place';
 import { SqliteMapPlaceStore } from '../src/lib/map/sqlite';
-import { placeProblems } from '../src/lib/map/store';
+import { MAP_PLACE_SCHEMA_SQL, placeProblems } from '../src/lib/map/store';
 
 /** A valid NIP-01 key derived from a label, so each test row has its own. */
 function keyFor(label: string): string {
@@ -776,7 +777,210 @@ if (schemaOk && listAllOk && identityOk && photosOk) {
   }
 }
 
+let googleMapsOk = false;
 if (schemaOk && listAllOk && identityOk && photosOk && adminByIdOk) {
+  let mapsDir: string | undefined;
+  let mapsSeed: Database | undefined;
+  let mapsStore: SqliteMapPlaceStore | undefined;
+  try {
+    const first = googleMapsSeed[0];
+    const second = googleMapsSeed[1];
+    if (first === undefined || second === undefined) {
+      throw new Error('google maps seed is missing a row');
+    }
+    const firstPubkey = npubDecode(first.npub);
+    const secondPubkey = npubDecode(second.npub);
+    if (firstPubkey === null || secondPubkey === null) {
+      throw new Error('google maps seed npub did not decode');
+    }
+    mapsDir = mkdtempSync(join(tmpdir(), 'sqlite-google-maps-'));
+    const mapsFile = join(mapsDir, 'map.sqlite');
+    const schemaWithoutLink = MAP_PLACE_SCHEMA_SQL.split('\n')
+      .filter((line) => line !== '  google_maps_url TEXT,')
+      .join('\n');
+    mapsSeed = new Database(mapsFile);
+    for (const part of schemaWithoutLink.split(';')) {
+      const statement = part.trim();
+      if (statement !== '') {
+        mapsSeed.exec(statement);
+      }
+    }
+    mapsSeed
+      .query(
+        `INSERT INTO map_place (
+           id, origin, external_id, name, lat, lon, category, created_at, tech_provider, activity,
+           active, nostr_pubkey
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        'maps-1',
+        'spar',
+        'maps-1',
+        'SPAR Maps One',
+        47.37,
+        8.54,
+        'groceries',
+        '2026-01-01T00:00:00.000Z',
+        'DFX.swiss',
+        'none',
+        1,
+        firstPubkey,
+      );
+    mapsSeed.close();
+    mapsSeed = undefined;
+    const readLink = (pubkey: string): string | null | undefined => {
+      const opened = new SqliteMapPlaceStore(mapsFile);
+      try {
+        const row = opened.listAll().find((place) => place.nostrPubkey === pubkey);
+        if (row === undefined) {
+          return undefined;
+        }
+        return row.googleMapsUrl;
+      } finally {
+        opened.close();
+      }
+    };
+    const seeded = readLink(firstPubkey);
+    const reopened = readLink(firstPubkey);
+    const otherLink = 'https://maps.app.goo.gl/abc';
+    mapsStore = new SqliteMapPlaceStore(mapsFile);
+    const replaced = mapsStore.upsert({
+      ...COMPLETE,
+      origin: 'spar',
+      externalId: 'maps-1',
+      name: 'SPAR Maps One',
+      nostrPubkey: firstPubkey,
+      googleMapsUrl: otherLink,
+    });
+    mapsStore.close();
+    mapsStore = undefined;
+    const afterReplace = readLink(firstPubkey);
+    const mapsOne: MapPlaceInput = {
+      ...COMPLETE,
+      origin: 'spar',
+      externalId: 'maps-1',
+      name: 'SPAR Maps One',
+      nostrPubkey: firstPubkey,
+    };
+    mapsStore = new SqliteMapPlaceStore(mapsFile);
+    const kept = mapsStore.upsert(mapsOne);
+    const repeated = mapsStore.insertIfNew({
+      ...mapsOne,
+      googleMapsUrl: 'https://maps.app.goo.gl/repeat',
+    });
+    mapsStore.close();
+    mapsStore = undefined;
+    const afterKeep = readLink(firstPubkey);
+    mapsStore = new SqliteMapPlaceStore(mapsFile);
+    const cleared = mapsStore.upsert({
+      ...COMPLETE,
+      origin: 'spar',
+      externalId: 'maps-1',
+      name: 'SPAR Maps One',
+      nostrPubkey: firstPubkey,
+      googleMapsUrl: null,
+    });
+    const inserted = mapsStore.insertIfNew({
+      ...COMPLETE,
+      origin: 'spar',
+      externalId: 'maps-2',
+      name: 'SPAR Maps Two',
+      nostrPubkey: secondPubkey,
+    });
+    mapsStore.close();
+    mapsStore = undefined;
+    const clearedLink = readLink(firstPubkey);
+    const insertedLink = readLink(secondPubkey);
+    const adminLink = 'https://maps.google.com/maps/place/admin';
+    mapsStore = new SqliteMapPlaceStore(mapsFile);
+    const replaceMaps = (content: MapPlaceInput) =>
+      (mapsStore as SqliteMapPlaceStore).replaceById({
+        id: 'maps-1',
+        content,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        lastTransactionAt: null,
+        activity: { kind: 'keep' },
+        nowMs: Date.now(),
+        active: true,
+      });
+    const adminSet = replaceMaps({ ...mapsOne, googleMapsUrl: adminLink });
+    const adminKept = replaceMaps(mapsOne);
+    mapsStore.close();
+    mapsStore = undefined;
+    const adminStored = readLink(firstPubkey);
+    if (
+      seeded === first.googleMapsUrl &&
+      reopened === first.googleMapsUrl &&
+      replaced.ok &&
+      !replaced.created &&
+      replaced.place.googleMapsUrl === otherLink &&
+      afterReplace === otherLink &&
+      kept.ok &&
+      !kept.created &&
+      kept.place.googleMapsUrl === otherLink &&
+      repeated.ok &&
+      !repeated.created &&
+      repeated.place.googleMapsUrl === otherLink &&
+      afterKeep === otherLink &&
+      cleared.ok &&
+      cleared.place.googleMapsUrl === null &&
+      clearedLink === null &&
+      inserted.ok &&
+      inserted.created &&
+      inserted.place.googleMapsUrl === null &&
+      insertedLink === null &&
+      adminSet.status === 'updated' &&
+      adminSet.place.googleMapsUrl === adminLink &&
+      adminKept.status === 'updated' &&
+      adminKept.place.googleMapsUrl === adminLink &&
+      adminStored === adminLink
+    ) {
+      googleMapsOk = true;
+    } else {
+      process.stdout.write(
+        `${JSON.stringify({
+          replaced,
+          kept,
+          repeated,
+          cleared,
+          inserted,
+          adminSet,
+          adminKept,
+          observed: {
+            seeded,
+            reopened,
+            afterReplace,
+            afterKeep,
+            clearedLink,
+            insertedLink,
+            adminStored,
+          },
+        })}\n`,
+      );
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    process.stdout.write(
+      `${JSON.stringify({ error: error instanceof Error ? error.message : error })}\n`,
+    );
+    process.exitCode = 1;
+  } finally {
+    try {
+      if (mapsSeed !== undefined) {
+        mapsSeed.close();
+      }
+      if (mapsStore !== undefined) {
+        mapsStore.close();
+      }
+    } finally {
+      if (mapsDir !== undefined) {
+        rmSync(mapsDir, { recursive: true, force: true });
+      }
+    }
+  }
+}
+
+if (schemaOk && listAllOk && identityOk && photosOk && adminByIdOk && googleMapsOk) {
   const activityDir = mkdtempSync(join(tmpdir(), 'sqlite-activity-backfill-'));
   const activityFile = join(activityDir, 'map.sqlite');
   let activitySeed: Database | undefined;
