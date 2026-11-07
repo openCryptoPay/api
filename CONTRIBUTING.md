@@ -10,7 +10,7 @@ The map API keeps the same gates as the 21.gifts API.
 | `main`    | Production. Moves only through the release pull request. | `dfxswiss/opencryptopay-api:latest` |
 
 - Land work on `develop` through a feature branch and a pull request. Do not push `develop` or `main` directly.
-- A push to `develop` publishes `dfxswiss/opencryptopay-api:beta`, except a push that changes only Markdown, and runs CI on that commit. The release pull request shows that same CI run. A manual run publishes only when it is started on `develop`.
+- A push to `develop` publishes `dfxswiss/opencryptopay-api:beta`, except a push that changes only Markdown, and runs CI on that commit. The push also asks the image publish endpoint to deploy that image with the job identity token and the image digest. The release pull request shows that same CI run. A manual run publishes only when it is started on `develop`. A manual run publishes but does not ask for a deploy.
 - A push to `main` publishes `dfxswiss/opencryptopay-api:latest`, except a push that changes only Markdown. A manual run publishes only when it is started on `main`.
 - `auto-release-pr.yaml` opens `Release: develop -> main` when `develop` is ahead of `main`.
 - Never force-push, and never amend a published commit.
@@ -46,11 +46,11 @@ Do not lower a coverage threshold to land a change. A genuinely unreachable bran
 | ----------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `ci.yaml`               | Pull request, and push to `develop`                                   | Typecheck, lint, handbook, e2e-check, test (100% coverage), database schema reference, notice script tests, build, e2e |
 | `db-change-notice.yaml` | Pull request into `develop` (opened, edited, synchronize, reopened)   | Require the database change notice                                                                                     |
-| `publish-dev.yaml`      | Push to `develop`, except Markdown-only, or a manual run on `develop` | Build and push `dfxswiss/opencryptopay-api:beta`                                                                       |
+| `publish-dev.yaml`      | Push to `develop`, except Markdown-only, or a manual run on `develop` | Build and push `dfxswiss/opencryptopay-api:beta`; on push, ask the image publish endpoint to deploy it                 |
 | `publish-prd.yaml`      | Push to `main`, except Markdown-only, or a manual run on `main`       | Build and push `dfxswiss/opencryptopay-api:latest`                                                                     |
 | `auto-release-pr.yaml`  | Push to `develop`                                                     | Open the release pull request (`develop` → `main`) when there is a diff                                                |
 
-Images are `linux/arm64`. The publish workflows push the image and do not deploy it.
+Images are `linux/arm64`. `publish-prd.yaml` pushes the image and does not deploy it. A push run of `publish-dev.yaml` also asks the publish endpoint to deploy the beta image.
 
 Publish workflows need these Actions secrets:
 
