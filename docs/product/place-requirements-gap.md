@@ -180,7 +180,8 @@ Name examples: `SPAR Maschlinastrasse 4, 9495 Triesen` (`spar`) and
    description, shop type (`SPAR`, `Others`), every address part, and
    coordinates; rejects a failed `POST` or `PUT /map/places` without storing;
    does not derive `country` or shop type; and leaves incomplete stored rows,
-   including an unparseable transaction time, out of `GET /map/places`.
+   including an unparseable transaction time, out of the default `GET /map/places`.
+   `GET /map/places?flag=completeList` still returns them.
 2. DFX.swiss: send a short name that may include the street and must not
    contain the postal code as a standalone token, a description, the shop
    type, the full address, coordinates and the shop's `nostrPubkey` (one key

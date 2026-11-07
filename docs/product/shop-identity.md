@@ -70,8 +70,8 @@ Every shop must state a NOSTR public key:
 - `nostrPubkey` is added to `ALLOWED_PLACE_KEYS`.
 - A stored row without `nostrPubkey` is not complete. `COMPLETE_PLACE_SQL`
   and the memory store's `isCompletePlace` both require it, so such a row
-  stays out of `GET /map/places` and `GET /map/places/{npub}`, in the same
-  way PR #22 handles the other fields. `GET /map/filters` keeps reading
+  stays out of the default `GET /map/places` and `GET /map/places/{npub}`, in the same
+  way PR #22 handles the other fields. `GET /map/places?flag=completeList` still returns the row. `GET /map/filters` keeps reading
   blockchains and assets from every row, as it does today for any
   incomplete row. Its `countries` list comes from public rows, so a
   country whose only shops have no key, or whose only public shop is
