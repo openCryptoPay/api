@@ -226,6 +226,47 @@ test('Function: SqliteMapPlaceStore — the created pin is listed', async ({ req
   expect(json.places.some((row) => row.name === 'Listed SPAR')).toBe(true);
 });
 
+test('GET /map/places flag=completeList returns every stored row and rejects another flag', async ({
+  request,
+}) => {
+  const created = await request.post('/map/places', {
+    headers: ingest,
+    data: completePlace({ externalId: 'e2e-complete-list', name: 'Complete List Pin' }),
+  });
+  expect(created.ok()).toBe(true);
+  const createdBody = (await created.json()) as { id: string };
+  const ordinary = await request.get('/map/places');
+  const ordinaryJson = (await ordinary.json()) as { places: Array<Record<string, unknown>> };
+  const ordinaryRow = ordinaryJson.places.find((row) => row['name'] === 'Complete List Pin');
+  expect(ordinaryRow).toMatchObject({ id: createdBody.id });
+  expect(ordinaryRow).not.toHaveProperty('recordId');
+
+  const listed = await request.get('/map/places?flag=completeList&limit=no');
+  expect(listed.status()).toBe(200);
+  const listedJson = (await listed.json()) as { places: Array<Record<string, unknown>> };
+  const row = listedJson.places.find((item) => item['name'] === 'Complete List Pin');
+  expect(row).toMatchObject({
+    id: createdBody.id,
+    externalId: 'e2e-complete-list',
+    paymentMethods: 'lightning',
+    active: true,
+    complete: true,
+    problems: [],
+    photos: [],
+    lastTransactionAt: null,
+  });
+  expect(typeof row?.['recordId']).toBe('string');
+  expect(row?.['recordId']).not.toBe(createdBody.id);
+  expect(typeof row?.['createdAt']).toBe('string');
+
+  const rejected = await request.get('/map/places?flag=full');
+  expect(rejected.status()).toBe(400);
+  expect(await rejected.json()).toEqual({ error: 'Invalid flag' });
+  const blank = await request.get('/map/places?flag=');
+  expect(blank.status()).toBe(400);
+  expect(await blank.json()).toEqual({ error: 'Invalid flag' });
+});
+
 test('Function: mapSubmissionBody — default boot does not require a map token', async ({
   request,
 }) => {

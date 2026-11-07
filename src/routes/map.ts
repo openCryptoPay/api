@@ -3,7 +3,7 @@ import { Hono, type Context, type Next } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { pushMapPlace, type FetchLike, type MapPushResult } from '@/lib/map/btcmap';
-import { publicFilterResponse } from '@/lib/map/filter-catalog';
+import { matchesUnstatedPayment, publicFilterResponse } from '@/lib/map/filter-catalog';
 import { isNostrPubkey, npubDecode, npubEncode } from '@/lib/map/nostr-key';
 import {
   MAX_PHOTO_BODY_BYTES,
@@ -21,12 +21,16 @@ import {
   publicPhoto,
   toPublicMapPlace,
   toPublicMapPlaceDetail,
+  type PublicMapPlace,
+  type PublicPhoto,
+  type StoredMapPlace,
 } from '@/lib/map/place';
-import type {
-  MapPhotoFile,
-  MapPlaceListFilter,
-  MapPlaceStore,
-  MapPlaceWriteError,
+import {
+  placeProblems,
+  type MapPhotoFile,
+  type MapPlaceListFilter,
+  type MapPlaceStore,
+  type MapPlaceWriteError,
 } from '@/lib/map/store';
 
 /** Cache rule of `GET /map/places/{npub}` on 200, 301 and 404. */
@@ -36,6 +40,58 @@ const DETAIL_CACHE = 'public, max-age=60';
 const PHOTO_CACHE = 'public, max-age=31536000, immutable';
 
 const PHOTO_FILE = /^([0-9a-f]{64})\.(jpg|png|webp)$/u;
+
+const COMPLETE_LIST_FLAG = 'completeList';
+
+/**
+ * Same predicates as the public list, without the complete-and-active gate.
+ * An empty filter matches every stored row.
+ */
+function storedPlaceMatches(place: StoredMapPlace, filter: MapPlaceListFilter): boolean {
+  if (filter.origin !== undefined && place.origin !== filter.origin) {
+    return false;
+  }
+  if (filter.country !== undefined && place.country !== filter.country) {
+    return false;
+  }
+  if (filter.shopType !== undefined && place.shopType !== filter.shopType) {
+    return false;
+  }
+  if (filter.blockchain !== undefined || filter.asset !== undefined) {
+    return matchesUnstatedPayment(place.techProvider, filter.blockchain, filter.asset);
+  }
+  return true;
+}
+
+/** Public pin plus the stored fields the public list normally omits. `id` stays the npub. */
+function toCompleteListPlace(
+  place: StoredMapPlace,
+  baseUrl: string,
+): PublicMapPlace & {
+  recordId: string;
+  externalId: string;
+  paymentMethods: string | null;
+  createdAt: string;
+  lastTransactionAt: string | null;
+  active: boolean;
+  complete: boolean;
+  problems: string[];
+  photos: PublicPhoto[];
+} {
+  const problems = placeProblems(place);
+  return {
+    ...toPublicMapPlace(place, baseUrl),
+    recordId: place.id,
+    externalId: place.externalId,
+    paymentMethods: place.paymentMethods,
+    createdAt: place.createdAt,
+    lastTransactionAt: place.lastTransactionAt,
+    active: place.active,
+    complete: problems.length === 0,
+    problems,
+    photos: place.photos.map((photo) => publicPhoto(photo, baseUrl)),
+  };
+}
 
 export type MapRouteDeps = {
   store: MapPlaceStore;
@@ -212,9 +268,14 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
   );
 
   app.get('/places', (c) => {
+    const flagQuery = c.req.query('flag');
+    if (flagQuery !== undefined && flagQuery !== COMPLETE_LIST_FLAG) {
+      return c.json({ error: 'Invalid flag' }, 400);
+    }
+    const completeList = flagQuery === COMPLETE_LIST_FLAG;
     const limitQuery = c.req.query('limit');
     let limit = 1000;
-    if (limitQuery !== undefined) {
+    if (!completeList && limitQuery !== undefined) {
       if (!/^\d+$/.test(limitQuery)) {
         return c.json({ error: 'Invalid limit' }, 400);
       }
@@ -246,6 +307,13 @@ export function mapRoutes(deps: MapRouteDeps): Hono {
     const filter: MapPlaceListFilter = { ...parsedFilter.value };
     if (origin !== undefined) {
       filter.origin = origin;
+    }
+    if (completeList) {
+      const places = deps.store
+        .listAll()
+        .filter((place) => storedPlaceMatches(place, filter))
+        .map((place) => toCompleteListPlace(place, deps.publicBaseUrl));
+      return c.json({ places });
     }
     const places = deps.store
       .list(limit, filter)
