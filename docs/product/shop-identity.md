@@ -13,9 +13,10 @@ any new environment variable in the README. R7 is in
 
 Every shop is registered with a NOSTR public key. That key is the shop's
 public identifier: in every public API answer, in the public page
-`https://opencryptopay.io/{npub}`, and in every new route. Only the signed
-admin interface keeps the internal id (see Storage). The
-page shows everything the API knows about the shop, including its photos. The
+`https://opencryptopay.io/{npub}`, and in every new route. The default public
+list does not return the internal id. `GET /map/places?flag=completeList`
+returns it as `recordId`. The signed admin interface keeps it as `id`
+(see Storage). The page shows everything the API knows about the shop, including its photos. The
 API stores the photos and serves them.
 
 OpenCryptoPay does not hold NOSTR keys, does not sign anything and does not
@@ -69,8 +70,8 @@ Every shop must state a NOSTR public key:
 - `nostrPubkey` is added to `ALLOWED_PLACE_KEYS`.
 - A stored row without `nostrPubkey` is not complete. `COMPLETE_PLACE_SQL`
   and the memory store's `isCompletePlace` both require it, so such a row
-  stays out of `GET /map/places` and `GET /map/places/{npub}`, in the same
-  way PR #22 handles the other fields. `GET /map/filters` keeps reading
+  stays out of the default `GET /map/places` and `GET /map/places/{npub}`, in the same
+  way PR #22 handles the other fields. `GET /map/places?flag=completeList` still returns the row. `GET /map/filters` keeps reading
   blockchains and assets from every row, as it does today for any
   incomplete row. Its `countries` list comes from public rows, so a
   country whose only shops have no key, or whose only public shop is
@@ -114,11 +115,13 @@ carries a key (step 1b), so the write path never stores a null. A signed admin
 without a key it must send one.
 
 `origin` + `externalId` stay the source's own key for idempotent writes. Every
-public response and every new route uses the NOSTR key instead. The internal
-UUID no longer appears in any public JSON: the `id` in the answers of `POST`
-and `PUT /map/places` is the npub.
+public response uses the NOSTR key as `id`. The `id` in the answers of `POST`
+and `PUT /map/places` is the npub. The default `GET /map/places` does not
+return the internal UUID. `GET /map/places?flag=completeList` is public and
+adds that UUID as `recordId`, while `id` stays the npub, or null when the row
+has no key.
 
-Only the signed admin interface still shows the internal UUID, because it
+The signed admin interface still shows the internal UUID as `id`, because it
 must also reach places without a key. `GET /admin/places` returns it as `id`
 and the npub as `npub`. `PUT` and `DELETE /admin/places` with that `id` are
 admin corrections outside the source's write order. They reject an npub as
@@ -416,7 +419,7 @@ stored bytes are the stripped bytes.
 
 ### `GET /map/places`
 
-- `id` is the shop's npub. The internal UUID is no longer returned.
+- On the default list, `id` is the shop's npub and the internal UUID is not returned. `?flag=completeList` returns every stored row and adds the internal UUID as `recordId`. `id` stays the npub, or null without a key.
 - New field `coverPhoto`: `null`, or `{ "url", "width", "height" }` for the
   first photo.
 
