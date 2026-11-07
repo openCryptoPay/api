@@ -1327,7 +1327,7 @@ export function publicPhoto(photo: StoredPlacePhoto, baseUrl: string): PublicPho
  *
  * @param place - Stored pin.
  * @param baseUrl - `OCP_PUBLIC_BASE_URL`, the origin of every photo URL.
- * @returns The public map row, including the stored activity, the cover photo, and the Google Maps link.
+ * @returns The public map row, including the stored activity bucket, the cover photo, and the Google Maps link. Never a payment instant.
  */
 export function toPublicMapPlace(place: StoredMapPlace, baseUrl: string): PublicMapPlace {
   const cover = place.photos[0];

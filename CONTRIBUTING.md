@@ -59,6 +59,14 @@ Publish workflows need these Actions secrets:
 | `DOCKER_USERNAME` | Docker Hub username for the push                                            |
 | `DOCKER_PASSWORD` | Docker Hub access token with read and write on `dfxswiss/opencryptopay-api` |
 
+## Payment times
+
+Never publish a concrete payment time. The instant of a shop payment is private.
+
+A response that does not require the admin signature must not include `lastTransactionAt`, `occurredAt`, or any other clock time of a payment. That covers `GET /map/places` with and without `flag=completeList`, `GET /map/places/{npub}`, and every public page or export. The public `activity` field may only be one of `daily`, `within7Days`, `within30Days`, `olderThan30Days`, and `none`.
+
+A signed admin response may still return `lastTransactionAt` for maintenance. The value stays in the database. Do not add it to a public JSON body, page, or CSV.
+
 ## A38
 
 This repository follows the A38 standard in DFXswiss/agent

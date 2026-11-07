@@ -63,7 +63,10 @@ function storedPlaceMatches(place: StoredMapPlace, filter: MapPlaceListFilter): 
   return true;
 }
 
-/** Public pin plus the stored fields the public list normally omits. `id` stays the npub. */
+/**
+ * Public pin plus the stored fields the public list normally omits. `id` stays the npub.
+ * A payment instant is never copied. `lastTransactionAt` stays in the store.
+ */
 function toCompleteListPlace(
   place: StoredMapPlace,
   baseUrl: string,
@@ -72,7 +75,6 @@ function toCompleteListPlace(
   externalId: string;
   paymentMethods: string | null;
   createdAt: string;
-  lastTransactionAt: string | null;
   active: boolean;
   complete: boolean;
   problems: string[];
@@ -85,7 +87,6 @@ function toCompleteListPlace(
     externalId: place.externalId,
     paymentMethods: place.paymentMethods,
     createdAt: place.createdAt,
-    lastTransactionAt: place.lastTransactionAt,
     active: place.active,
     complete: problems.length === 0,
     problems,

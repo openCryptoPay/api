@@ -359,6 +359,9 @@ describe('map routes', () => {
     };
     expect(publicList.places.map((row) => row['id'])).not.toContain(hiddenNpub);
     expect(publicList.places.every((row) => !Object.hasOwn(row, 'recordId'))).toBe(true);
+    expect(publicList.places.every((row) => !Object.hasOwn(row, 'lastTransactionAt'))).toBe(true);
+    expect(publicList.places.every((row) => !Object.hasOwn(row, 'occurredAt'))).toBe(true);
+    expect(JSON.stringify(publicList)).not.toContain(paidAt);
 
     const full = await api.request('/map/places?flag=completeList&limit=no');
     expect(full.status).toBe(200);
@@ -373,9 +376,10 @@ describe('map routes', () => {
       active: false,
       complete: false,
       problems: ['description is empty'],
-      lastTransactionAt: null,
       photos: [],
     });
+    expect(hiddenRow).not.toHaveProperty('lastTransactionAt');
+    expect(hiddenRow).not.toHaveProperty('occurredAt');
     expect(hiddenRow?.['recordId']).not.toBe(hiddenNpub);
     expect(visibleRow).toMatchObject({
       id: visibleNpub,
@@ -385,7 +389,6 @@ describe('map routes', () => {
       active: true,
       complete: true,
       problems: [],
-      lastTransactionAt: paidAt,
       country: 'CH',
       shopType: 'Others',
       shopName: null,
@@ -397,6 +400,10 @@ describe('map routes', () => {
       /^https:\/\/api\.test\/map\/photos\/[0-9a-f]{64}\.png$/u,
     );
     expect((photos as Array<{ caption: string }>)[0]?.caption).toBe('Front');
+    expect(visibleRow).not.toHaveProperty('lastTransactionAt');
+    expect(visibleRow).not.toHaveProperty('occurredAt');
+    expect(JSON.stringify(fullJson)).not.toContain(paidAt);
+    expect(visibleRow?.['activity']).not.toBe(paidAt);
 
     const byCountry = (await (
       await api.request('/map/places?flag=completeList&country=LI')

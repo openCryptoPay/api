@@ -253,8 +253,9 @@ test('GET /map/places flag=completeList returns every stored row and rejects ano
     complete: true,
     problems: [],
     photos: [],
-    lastTransactionAt: null,
   });
+  expect(row).not.toHaveProperty('lastTransactionAt');
+  expect(row).not.toHaveProperty('occurredAt');
   expect(typeof row?.['recordId']).toBe('string');
   expect(row?.['recordId']).not.toBe(createdBody.id);
   expect(typeof row?.['createdAt']).toBe('string');
